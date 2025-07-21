@@ -1,0 +1,501 @@
+---
+title: "SKN-1 dependent effects of IIS KD"
+author: "Sara Irish"
+date: "`r Sys.Date()`"
+output: html_document
+---
+#Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+suppressPackageStartupMessages({
+  library(glmmTMB)
+  library(car)
+  library(popbio)
+  library(ggplot2)
+  library(ggbeeswarm)
+  library(shades)
+  library(RColorBrewer)
+  library(DHARMa)
+  library(Rmisc)
+  library(dabestr)
+  library(magrittr)
+  library(tidyr)
+  library(dplyr)
+  library(ggeffects)
+  library(lme4)
+  library(optimx)
+  library(nloptr)
+  library(dfoptim)
+  library(data.table)
+  library(pscl)
+  library(ggThemeAssist)
+  library(DHARMa)
+  library(emmeans)
+  library(ggpubr)
+  library(patchwork)
+  library(lubridate)
+  library(survival)
+  library(coxme) #for cox model
+  library(ggplot2)
+  library(purrr) #for forestplot
+  library(ggpubr) #for forestplot
+  library(survminer) #for forestplot
+  library(AICcmodavg)
+  library(permutes)
+  library(performance)
+  library(fields)
+  library(grid)
+  library(ggplotify)
+  library(cowplot)
+  library(eha)
+  library(multcomp)
+  library(usethis)})#
+
+#24-hour 15 to 25C thermocycling experiments, HF = 25C first, CF = 15C first, LS = lifespan, rep = reproduction
+thermo_HF_rep <- read.csv('Thermo_H_rep.csv')
+thermo_HF_LS <- read.csv('Thermo_H_LS.csv')
+thermo_CF_rep <- read.csv('Thermo_C_rep.csv')
+thermo_CF_LS <- read.csv('Thermo_C_LS.csv') 
+
+#SKN-1 mutants with and without daf-2 RNAi KD in 20C - LS = lifespan, rep = reproduction
+SKN_20C_rep <- read.csv('SKN1_20C_repro.csv')
+SKN_20C_LS <- read.csv('SKN1_20C_LS.csv')
+
+#Lifespan experiment SKN-1 mutants with and without daf-2 RNAi KD in 15 and 25C, with additional treatment of daf-2 RNAi KD SKN-1 mutants starting with 24 hrs of opposite temperature to test effects of temperature on early development of SKN-1 mutants
+SKN_15_25_LS <- read.csv('SKN_N2_LS_15_25.csv')
+
+
+```
+
+
+#Cold first Thermocycling
+
+Reproduction and lifespan assays following 24 hour thermo-cycling between 15 and 25C with 15C first across four treatments: SKN-1 mutant + daf-2 RNAi, SKN-1 mutant + ev (control), N2 + daf-2 RNAi, N2 + ev
+
+## Reproduction 
+```{r}
+#Dataframe into long form
+thermo_c_long <- thermo_CF_rep %>% 
+  pivot_longer(
+    cols = c(`D1`,`D2`, `D3`, `D4`, `D5`,`D6`, `D7`,`D8`,`D9`), 
+    names_to = "Day",
+    values_to = "value")
+
+#Remove unneeded columns
+thermo_c_long <- thermo_c_long %>%
+  dplyr::select(c('ID','Strain', 'Treatment','Day','value'))
+
+#Remove NAs
+thermo_c_long <- na.omit(thermo_c_long)
+
+#Combine strain and treatment into one variable for plotting
+thermo_c_long <- thermo_c_long %>%
+  unite(Str_tr, c('Strain', 'Treatment'), remove = F)
+
+#Set levels of StrainxTreatment
+thermo_c_long$Str_tr <- factor(thermo_c_long$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
+
+#Create colour palette
+palette <- c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')
+
+#Age-specific reproduction plot
+thermo_C_p <-ggplot(data=thermo_c_long, aes(x=factor(Day), y=value, group=Str_tr, color=Str_tr))+
+  geom_jitter(alpha = 0.2, position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.5))+
+  stat_summary(fun.data="mean_cl_boot", geom="errorbar", size = 1.2, width=0.0, position = position_dodge(0.5)) +
+  stat_summary(fun.data="mean_cl_boot", geom="point", size = 3, position = position_dodge(0.5)) +
+  stat_summary(fun.data="mean_cl_boot", geom="line",  size=1.2, position = position_dodge(0.5)) +
+  theme_classic()+
+  labs(y="Offspring number", x="")+
+  labs(col="")+
+  labs(title = 'Start 15\u00B0C')+   
+  theme(axis.title.y = element_text(size=16))+
+  theme(axis.title.x = element_text(size=16))+
+  theme(axis.text= element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+
+  theme(plot.title = element_text(size =16))+
+  scale_color_manual(values=palette)+
+  theme(legend.key.width = unit(0.5,"cm"))+
+  coord_cartesian(ylim = c(0,175))+
+  theme(legend.position = c(0.8, 0.9))
+
+thermo_C_p
+
+#Make sure Day is a factor
+thermo_c_long$Day <- as.factor(thermo_c_long$Day)
+
+#Change day to a numeric variable for analysis
+levels(thermo_c_long$Day) <- list('1' = 'D1', '2' = 'D2', '3' = 'D3', '4' = 'D4', '5' = 'D5', '6' = 'D6', '7' = 'D7', '8' = 'D8', '9' = 'D9')
+thermo_c_long$Day <- as.numeric(thermo_c_long$Day)
+
+
+#Analyse age-specific repro - use glmmTMB negative binomial due to high level of zeroes
+CF_m1 <- glmmTMB(value ~ Strain *Treatment*Day + (1|ID), family = nbinom1, data = thermo_c_long)
+
+#Simulate residuals with DHARMa package to test for dispersion and zero-inflation issues
+CF_sim1 <- simulateResiduals(CF_m1, plot = T)
+testDispersion(CF_sim1)#underdispersed
+testZeroInflation(CF_sim1)#zero-inflation
+
+#Add zero-inflation parameter
+CF_m2 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID), ziformula = ~ Day, family = 'nbinom1', data = thermo_c_long)
+
+#SImulate residuals again to test model
+CF_sim2 <- simulateResiduals(CF_m2, plot = T)
+testDispersion(CF_sim2)
+testZeroInflation(CF_sim2)
+summary(CF_m2)
+
+#Get chi-squared using type III Anova to account for interaction
+Anova(CF_m2, type = 'III')
+
+
+# Lifetime reproduction success
+
+#Create dataframe containing Sum of total reproduction for each individual
+totalrep_CF<-na.omit(as.data.frame.table(tapply(thermo_c_long$value,list(thermo_c_long$Strain, thermo_c_long$Treatment, thermo_c_long$Str_tr, thermo_c_long$ID),sum)))
+
+#rename columns
+names(totalrep_CF)<-c('Strain', 'Treatment', "Str_tr", "Replicate", "Totrep")
+
+#Set factor levels for 
+totalrep_CF$Str_tr <- factor(totalrep_CF$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
+
+#Create dabestr object for plotting bootstrap estimations
+totrep_CF_dab <-
+  totalrep_CF %>%
+  load(x =Str_tr, y=Totrep,
+       idx = c('N2_ev','N2_daf', 'SKN-1_ev','SKN-1_daf'))
+
+#Get mean differences from dabestr object for plotting
+totrep_CF_dab_p <- mean_diff(totrep_CF_dab)
+
+#Create Cumming estimation plot
+tot_rep_plot_CF <- dabest_plot(totrep_CF_dab_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
+
+tot_rep_plot_CF
+
+#Check distribution
+hist(totalrep_CF$Totrep)#close to normal
+
+#Analyse LRS with linear model
+LRS_CF <- lm(Totrep ~ Strain * Treatment, data = totalrep_CF)
+
+#Simulate residuals
+LRS_CF_sim1 <- simulateResiduals(LRS_CF, plot = T)#looks good
+
+summary(LRS_CF)#no effect, try removing interaction
+
+LRS_CF2 <- lm(Totrep ~ Strain + Treatment, data = totalrep_CF)
+
+#Simulate residuals
+LRS_CF_sim2 <- simulateResiduals(LRS_CF2, plot = T)#OK
+
+summary(LRS_CF2)#trend toward higher LRS in SKN-1
+
+#Use type II anova to get chi-squared
+Anova(LRS_CF2, type = 'II')
+```
+
+
+## Lifespan
+```{r}
+
+#Function for creating forest plot
+meforest <- function(cox, N2_ev){ 
+  require(AICcmodavg)
+  require(ggplot2)
+  require(forcats)
+  store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
+  ref <- c(paste(N2_ev), 0,NA, NA)
+  store[1,] <- ref
+  for (x in 1:length(cox$coefficients)){
+    y = x+1
+    mean<-cox$coefficients[x]
+    emean <- (mean)
+    CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
+    CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
+    eCIL <- (CIL)
+    eCUL <- (CUL)
+    store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
+  colnames(store) <- c("Str_tr", "mean", "CIL","CUL")
+  store <- as.data.frame(store)
+  store$mean <- as.numeric(as.character(store$mean))
+  store$CIL <- as.numeric(as.character(store$CIL))
+  store$CUL <- as.numeric(as.character(store$CUL))
+  forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Str_tr, colour = Str_tr)) +
+    geom_point(size=4, shape = 19, colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
+    geom_errorbarh(height=0.25, size=0.9,  colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
+    theme_minimal() +
+    geom_vline(xintercept=0, linetype="dotted", size=0.8) +
+    xlab("Hazard Ratio")+
+    ylab("")+
+    theme(
+      axis.text = element_text(size = 18),
+      axis.title = element_text(size = 18)
+    )+
+    scale_y_discrete(limits = (levels(store$Str_tr)), labels = c('Str_trSKN-1_ev' = 'SKN-1 ev', 'Str_trSKN-1_daf' = 'SKN-1 daf-2', 'Str_trN2_daf' = 'N2 daf-2', 'N2_ev' = 'N2 ev'))+
+    expand_limits(x = c(-1.5,0.5))
+  return(forest)
+}
+
+#Create a combined variable for strain and treatment since forest plot can't do interactions
+thermo_CF_LS <- thermo_CF_LS %>%
+  unite(Str_tr, c('Strain', 'Treatment.ID'), remove = F)
+
+#Set levels
+thermo_CF_LS$Tr_str <- factor(thermo_CF_LS$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
+
+#Set as factor
+thermo_CF_LS$Str_tr <- as.factor(thermo_CF_LS$Str_tr)
+
+#Set N2_ev as baseline level
+thermo_CF_LS$Str_tr <- relevel(thermo_CF_LS$Str_tr, ref = 'N2_ev')
+
+#Exclude unnatural causes of mortality, L = loss, W = wall, E = explosion
+thermo_CF_LS <- thermo_CF_LS %>%
+  filter(thermo_CF_LS$Cause != 'L' & thermo_CF_LS$Cause !='W' & thermo_CF_LS$Cause != 'E')
+
+#Create a binary variable for matricides
+thermo_CF_LS$Matricide <- as.numeric(thermo_CF_LS$Cause == 'M')
+
+CF_mat_mod <- glmer(Matricide ~ Str_tr + (1|Plate.ID), data = thermo_CF_LS, family = 'binomial')
+summary(C_mat_mod)
+
+
+#Create survival object for plotting Kaplan Meier curves
+surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LS)
+
+#Survival curve plot
+THC_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_CF_LS, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", title = "Start 15\u00B0C \n Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"),font.tickslab = c(14),  font.legend = c(16), font.title = c(16))
+THC_LS_plot
+
+
+#Create dataframe excluding matricides
+thermo_CF_LSNM <- thermo_CF_LS %>%
+  filter(thermo_CF_LS$Cause != 'M')
+
+#Create survival object
+surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LSNM)
+
+#Create survival curves
+LS_plot_matcen_THC <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_CF_LSNM, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", palette = palette, title = "Start 15\u00B0C \n Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"), font.tickslab = c(14), font.legend = c(16), font.title = c(16))
+LS_plot_matcen_THC
+
+#Mixed effects cox proportional hazards model to test effect of treatment on survival probability
+CF_cox <- coxme(Surv(Age, Event) ~ Str_tr + (1|Plate.ID), data = thermo_CF_LS)
+
+#Test model 
+cox.zph(CF_cox)#p< 0.0001 - need EH analysis
+
+#Mixed effects cox proportional hazards model to test effect of treatment on survival probability
+CF_NM_cox <- coxme(Surv(Age, Event) ~ Str_tr + (1|Plate.ID), data = thermo_CF_LSNM)
+
+#Test model
+cox.zph(CF_NM_cox) # p = 0.023
+plot(cox.zph(CF_NM_cox))#plot looks relatively OK - will check with EH analysis
+
+#Create forest plot from function above
+CF_forest <- meforest(CF_cox, 'N2_ev')
+CF_forest
+
+#Create forest plot from function above
+CF_NM_forest <- meforest(CF_NM_cox, 'N2_ev')
+CF_NM_forest
+
+
+```
+
+
+# Hot first thermocycling
+
+## Reproduction
+```{r}
+#Put dataframe into long form
+thermo_h_long <- thermo_HF_rep %>% 
+  pivot_longer(
+    cols = c(`D1`,`D2`, `D3`, `D4`, `D5`,`D6`, `D7`,`D8`,`D9`), 
+    names_to = "Day",
+    values_to = "value")
+
+#Keep only columns that are necessary
+thermo_h_long <- thermo_h_long %>%
+  dplyr::select(c('ID','Strain', 'Treatment','Day','value'))
+
+#Get rid of NAs
+thermo_h_long <- na.omit(thermo_h_long)
+
+#Create a combined strain and treatment column for plotting
+thermo_h_long <- thermo_h_long %>%
+  unite(Str_tr, c('Strain', 'Treatment'), remove = F)
+
+#Set factor levels for Strain x Treatment
+thermo_h_long$Str_tr <- factor(thermo_h_long$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
+
+#Age-specific reproduction plot
+thermo_H_p <-ggplot(data=thermo_h_long, aes(x=factor(Day), y=value, group=Str_tr, color=Str_tr))+
+  geom_jitter(alpha = 0.2, position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.5))+
+  stat_summary(fun.data="mean_cl_boot", geom="errorbar", size = 1.2, width=0.0, position = position_dodge(0.5)) +
+  stat_summary(fun.data="mean_cl_boot", geom="point", size = 3, position = position_dodge(0.5)) +
+  stat_summary(fun.data="mean_cl_boot", geom="line",  size=1.2, position = position_dodge(0.5)) +
+  theme_classic()+
+  labs(y="Offspring number", x="")+
+  labs(col="")+
+  labs(title = 'Start 25\u00B0C')+
+  theme(plot.title = element_text(size = 16))+
+  theme(axis.title.y = element_text(size=16))+
+  theme(axis.title.x = element_text(size=16))+
+  theme(axis.text= element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+
+  scale_color_manual(values=palette)+
+  theme(legend.key.width = unit(0.5,"cm"))+
+  coord_cartesian(ylim = c(0,225))+
+  theme(legend.position = c(0.8, 0.9))
+
+thermo_H_p
+
+#Make sure Day is a factor
+thermo_h_long$Day <- as.factor(thermo_h_long$Day)
+
+#Change day to a numeric variable for analysis
+levels(thermo_h_long$Day) <- list('1' = 'D1', '2' = 'D2', '3' = 'D3', '4' = 'D4', '5' = 'D5', '6' = 'D6', '7' = 'D7', '8' = 'D8', '9' = 'D9')
+thermo_h_long$Day <- as.numeric(thermo_h_long$Day)
+
+#Analyse age-specific reproduction - glmmTMB with negative binomial family (will try nbinom2 to account for curvature at early days)
+
+HF_m1 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID), family = nbinom2(), data = thermo_h_long)
+
+#simulate residuals with DHARMa, test dispersion and zero inflation
+HF_sim1 <- simulateResiduals(HF_m1, plot = T)
+testDispersion(HF_sim1)# a bit underdispersed
+testZeroInflation(HF_sim1)#very zero-inflated
+
+#Try adding ZI paramter ~ Day (since 0's more likely to occur on certain days)
+HF_m2 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID), family = nbinom2(), ziformula = ~Day, data = thermo_h_long)
+
+#simualte residuals
+HF_sim2 <- simulateResiduals(HF_m2, plot = T)
+testDispersion(HF_sim2)#got a little worse
+testZeroInflation(HF_sim2)#still very zero-inflated
+
+#Try adding additional Treatment*Strain information into ZI parameter
+HF_m3 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID), family = nbinom2(), ziformula = ~ Day * Strain * Treatment, data = thermo_h_long)
+
+#simulate residuals
+HF_sim3 <- simulateResiduals(HF_m3, plot= T)
+testDispersion(HF_sim3)
+testZeroInflation(HF_sim3)
+summary(HF_m3)#not converging? all NA
+
+#Try removing interactions from ziformula
+HF_m4 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID), ziformula = ~ Day + Strain + Treatment, data = thermo_h_long, family = nbinom2())#won't converge
+
+#Add OLRE - keep Day as formula
+thermo_h_long <- tibble::rowid_to_column(thermo_h_long, "OLRE")
+HF_m5 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID) + (1|OLRE), ziformula = ~ Day, family = nbinom2(), data = thermo_h_long)
+summary(HF_m5)
+
+HF_sim5 <- simulateResiduals(HF_m5, plot = T)
+testDispersion(HF_sim5)
+testZeroInflation(HF_sim5)
+
+#Try including just strain in ziformula (because SKN-1s overall reproduced for longer)
+HF_m6 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID) + (1|OLRE), ziformula = ~ Day + Strain, family = nbinom2(), data = thermo_h_long)
+summary(HF_m6)#won't converge - previous model showed no signfiicant 3-way interaction - try removing
+
+#Model without 3 way interaction
+HF_m7 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~Day + Strain, family = nbinom2(), data = thermo_h_long)
+summary(HF_m7)#this converged
+
+HF_sim7 <- simulateResiduals(HF_m7, plot = T)
+testDispersion(HF_sim7)#better
+testZeroInflation(HF_sim7)#better but still zero inflated
+
+
+HF_m8 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~1+Day + Strain, family = nbinom2(), data = thermo_h_long)
+summary(HF_m8)
+
+HF_sim8 <- simulateResiduals(HF_m8, plot = T)
+testDispersion(HF_sim8)#better
+testZeroInflation(HF_sim8)#slightly better
+
+
+HF_m9 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~1+Day * Strain, family = nbinom2(), data = thermo_h_long)
+summary(HF_m9)#won't converge
+
+HF_m10 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~1+Day + Strain, family = nbinom1(), data = thermo_h_long)
+summary(HF_m10)#doesn't converge
+
+
+#Try using splines
+library(splines)
+HF_m11 <- glmmTMB(value ~ Strain*Treatment + Strain*Day + Treatment*Day + (1|ID), ziformula =~ ns(Day, df = 3), family = nbinom2(), data = thermo_h_long)
+summary(HF_m11)
+HF_sim11 <- simulateResiduals(HF_m11, plot = T)
+testDispersion(HF_sim11)
+testZeroInflation(HF_sim11)
+
+HF_m11_2 <- glmmTMB(value ~ Strain*Treatment + Strain*Day + Treatment*Day + (1|ID), ziformula =~ ns(Day, df = 2), family = nbinom2(), data = thermo_h_long)
+
+HF_m11_4 <- glmmTMB(value ~ Strain*Treatment + Strain*Day + Treatment*Day + (1|ID), ziformula =~ ns(Day, df = 4), family = nbinom2(), data = thermo_h_long)
+
+AIC(HF_m11, HF_m11_2, HF_m11_4)
+#Calculate total reproduction over experiment per individual
+totalrep_HF<-na.omit(as.data.frame.table(tapply(thermo_h_long$value,list(thermo_h_long$Strain, thermo_h_long$Treatment, thermo_h_long$Str_tr, thermo_h_long$ID),sum)))
+
+library(ggeffects)
+
+# predictions for Strain x Day, group by Treatment
+preds <- ggpredict(HF_m11, terms = c("Day", "Strain", "Treatment"))
+plot(preds)
+
+# try grouping by strain
+preds2 <- ggpredict(HF_m11, terms = c("Day", "Treatment", "Strain"))
+plot(preds2)
+
+
+#rename columns
+names(totalrep_HF)<-c('Strain','Treatment',"Str_tr", "Replicate", "Totrep")
+
+#change factor levels
+totalrep_HF$Str_tr <- factor(totalrep_HF$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
+
+#Create dabestr object for Cumming estimation plot
+totrep_HF_dab <-
+  totalrep_HF %>%
+  load(x =Str_tr, y=Totrep,
+       idx = c('N2_ev','N2_daf', 'SKN-1_ev','SKN-1_daf'))
+
+#Get mean differences for estimation plot
+totrep_HF_p <- mean_diff(totrep_HF_dab)
+
+#Create bootstrap estimation plot
+tot_rep_plot_HF <- dabest_plot(totrep_HF_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
+
+tot_rep_plot_HF
+
+
+#Check distribution of LRS 
+hist(totalrep_HF$Totrep)#normal
+
+#Linear model to analyse total repro
+LRS_HF_m1 <- lm(Totrep ~ Treatment*Strain, data = totalrep_HF)
+summary(LRS_HF_m1)
+
+#simulate residual with DHARMa package
+LRS_HF_sim1 <- simulateResiduals(LRS_HF_m1, plot = T)#OK!
+
+#Try removing interaction
+LRS_HF_m2 <- lm(Totrep ~ Treatment + Strain, data = totalrep_HF)
+summary(LRS_HF_m2)#SKN-1 have (significantly) lower LRS now in hot first
+
+#simulate residuals
+LRS_HF_sim2 <- simulateResiduals(LRS_HF_m2, plot = T)#OK!
+
+```
+
+## Lifespan
+```{r}
+
+
+```
