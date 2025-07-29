@@ -50,7 +50,9 @@ suppressPackageStartupMessages({
   library(cowplot)
   library(eha)
   library(multcomp)
-  library(usethis)})#
+  library(usethis)
+  library(forcats)
+})
 
 #24-hour 15 to 25C thermocycling experiments, HF = 25C first, CF = 15C first, LS = lifespan, rep = reproduction
 thermo_HF_rep <- read.csv('Thermo_H_rep.csv')
@@ -98,6 +100,9 @@ thermo_c_long <- thermo_c_long %>%
 #Set levels of StrainxTreatment
 thermo_c_long$Str_tr <- factor(thermo_c_long$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
 
+#change names of Str_tr
+levels(thermo_c_long$Str_tr) <- list('N2 ev' = 'N2_ev', 'N2 daf-2' = 'N2_daf', 'SKN-1 ev' = 'SKN-1_ev', 'SKN-1 daf-2' = 'SKN-1_daf')
+
 #Create colour palette
 palette <- c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')
 
@@ -111,11 +116,11 @@ thermo_C_p <-ggplot(data=thermo_c_long, aes(x=factor(Day), y=value, group=Str_tr
   labs(y="Offspring number", x="")+
   labs(col="")+
   labs(title = 'Start 15\u00B0C')+   
-  theme(axis.title.y = element_text(size=16))+
-  theme(axis.title.x = element_text(size=16))+
-  theme(axis.text= element_text(size = 14))+
-  theme(legend.text = element_text(size = 14))+
-  theme(plot.title = element_text(size =16))+
+  theme(axis.title.y = element_text(size=14))+
+  theme(axis.title.x = element_text(size=14))+
+  theme(axis.text= element_text(size = 12))+
+  theme(legend.text = element_text(size = 12))+
+  theme(plot.title = element_text(size =12))+
   scale_color_manual(values=palette)+
   theme(legend.key.width = unit(0.5,"cm"))+
   coord_cartesian(ylim = c(0,175))+
@@ -165,19 +170,19 @@ totalrep_CF<-na.omit(as.data.frame.table(tapply(thermo_c_long$value,list(thermo_
 names(totalrep_CF)<-c('Strain', 'Treatment', "Str_tr", "Replicate", "Totrep")
 
 #Set factor levels for 
-totalrep_CF$Str_tr <- factor(totalrep_CF$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
+totalrep_CF$Str_tr <- factor(totalrep_CF$Str_tr, levels = c("N2 ev", "N2 daf-2", "SKN-1 ev", "SKN-1 daf-2"))
 
 #Create dabestr object for plotting bootstrap estimations
 totrep_CF_dab <-
   totalrep_CF %>%
   load(x =Str_tr, y=Totrep,
-       idx = c('N2_ev','N2_daf', 'SKN-1_ev','SKN-1_daf'))
+       idx = c('N2 ev','N2 daf-2', 'SKN-1 ev','SKN-1 daf-2'))
 
 #Get mean differences from dabestr object for plotting
 totrep_CF_dab_p <- mean_diff(totrep_CF_dab)
 
 #Create Cumming estimation plot
-tot_rep_plot_CF <- dabest_plot(totrep_CF_dab_p, FALSE, raw_marker_spread = 1, swarm_label = 'Total reproduction',custom_palette = 'npg', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
+tot_rep_plot_CF <- dabest_plot(totrep_CF_dab_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
 
 tot_rep_plot_CF
 
@@ -207,44 +212,6 @@ Anova(LRS_CF2, type = 'II')
 ## Lifespan
 ```{r}
 
-#Function for creating forest plot
-meforest <- function(cox, N2_ev){ 
-    require(AICcmodavg)
-    require(ggplot2)
-    require(forcats)
-    store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
-    ref <- c(paste(N2_ev), 0,NA, NA)
-    store[1,] <- ref
-    for (x in 1:length(cox$coefficients)){
-      y = x+1
-      mean<-cox$coefficients[x]
-      emean <- (mean)
-      CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
-      CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
-      eCIL <- (CIL)
-      eCUL <- (CUL)
-      store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
-    colnames(store) <- c("Str_tr", "mean", "CIL","CUL")
-    store <- as.data.frame(store)
-    store$mean <- as.numeric(as.character(store$mean))
-    store$CIL <- as.numeric(as.character(store$CIL))
-    store$CUL <- as.numeric(as.character(store$CUL))
-    forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Str_tr, colour = Str_tr)) +
-      geom_point(size=4, shape = 19, colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
-      geom_errorbarh(height=0.25, size=0.9,  colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
-      theme_minimal() +
-      geom_vline(xintercept=0, linetype="dotted", size=0.8) +
-      xlab("Hazard Ratio")+
-      ylab("")+
-      theme(
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 18)
-      )+
-      scale_y_discrete(limits = (levels(store$Str_tr)), labels = c('Str_trSKN-1_ev' = 'SKN-1 ev', 'Str_trSKN-1_daf' = 'SKN-1 daf-2', 'Str_trN2_daf' = 'N2 daf-2', 'N2_ev' = 'N2 ev'))+
-      expand_limits(x = c(-1.5,0.5))
-    return(forest)
-  }
-
 #Create a combined variable for strain and treatment since forest plot can't do interactions
 thermo_CF_LS <- thermo_CF_LS %>%
   unite(Str_tr, c('Strain', 'Treatment.ID'), remove = F)
@@ -263,10 +230,10 @@ thermo_CF_LS <- thermo_CF_LS %>%
   filter(thermo_CF_LS$Cause != 'L' & thermo_CF_LS$Cause !='W' & thermo_CF_LS$Cause != 'E')
 
 #Create survival object for plotting Kaplan Meier curves
-surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LS)
+surv_CF<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LS)
 
 #Survival curve plot
-THC_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_CF_LS, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", title = "Start 15\u00B0C \n Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"),font.tickslab = c(14),  font.legend = c(16), font.title = c(16))
+THC_LS_plot <-ggsurvplot(surv_CF, ylab="Survival probability\n", data = thermo_CF_LS, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.3, 0.4), legend.title = "", title = "Start 15\u00B0C", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("N2 ev", "N2 daf-2", "SKN-1 ev", "SKN-1 daf-2"),font.tickslab = c(12),  font.legend = c(12), font.title = c(12))
 THC_LS_plot
 
 
@@ -275,10 +242,10 @@ thermo_CF_LSNM <- thermo_CF_LS %>%
   filter(thermo_CF_LS$Cause != 'M')
 
 #Create survival object
-surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LSNM)
+survCF_NM<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LSNM)
 
 #Create survival curves
-LS_plot_matcen_THC <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_CF_LSNM, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", palette = palette, title = "Start 15\u00B0C \n Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"), font.tickslab = c(14), font.legend = c(16), font.title = c(16))
+LS_plot_matcen_THC <-ggsurvplot(survCF_NM, ylab="Survival probability\n", data = thermo_CF_LSNM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.3, 0.4), legend.title = "", palette = palette, title = "Start 15\u00B0C", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("N2 ev", "N2 daf-2", "SKN-1 ev", "SKN-1 daf-2"), font.tickslab = c(12), font.legend = c(12), font.title = c(12))
 LS_plot_matcen_THC
 
 #Sometimes NAs are produced creating an additional non-existent factor level - omit NAs first
@@ -326,7 +293,7 @@ CF_contrasts <- ggplot(df_CF, aes(x = Comparison, y = logHR, colour = Strain)) +
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison (within strain)",
+    x = "Treatment comparison \n(within strain)",
     y = "Log hazard ratio (HR)"
   ) +
     scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -373,7 +340,7 @@ CF_NM_contrasts <- ggplot(df_CF_NM, aes(x = Comparison, y = logHR, colour = Stra
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison (within strain)",
+    x = "Treatment comparison \n(within strain)",
     y = "Log hazard ratio (HR)"
   ) +
   scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -383,6 +350,7 @@ CF_NM_contrasts <- ggplot(df_CF_NM, aes(x = Comparison, y = logHR, colour = Stra
         legend.position = 'none')
 
 CF_NM_contrasts
+
 
 ```
 
@@ -414,6 +382,9 @@ thermo_h_long <- thermo_h_long %>%
 #Set factor levels for Strain x Treatment
 thermo_h_long$Str_tr <- factor(thermo_h_long$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
 
+#change names of Str_tr
+levels(thermo_h_long$Str_tr) <- list('N2 ev' = 'N2_ev', 'N2 daf-2' = 'N2_daf', 'SKN-1 ev' = 'SKN-1_ev', 'SKN-1 daf-2' = 'SKN-1_daf')
+
 #Age-specific reproduction plot
 thermo_H_p <-ggplot(data=thermo_h_long, aes(x=factor(Day), y=value, group=Str_tr, color=Str_tr))+
   geom_jitter(alpha = 0.2, position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.5))+
@@ -424,11 +395,11 @@ thermo_H_p <-ggplot(data=thermo_h_long, aes(x=factor(Day), y=value, group=Str_tr
   labs(y="Offspring number", x="")+
   labs(col="")+
   labs(title = 'Start 25\u00B0C')+
-  theme(plot.title = element_text(size = 16))+
-  theme(axis.title.y = element_text(size=16))+
-  theme(axis.title.x = element_text(size=16))+
-  theme(axis.text= element_text(size = 14))+
-  theme(legend.text = element_text(size = 14))+
+  theme(plot.title = element_text(size = 12))+
+  theme(axis.title.y = element_text(size=14))+
+  theme(axis.title.x = element_text(size=14))+
+  theme(axis.text= element_text(size = 12))+
+  theme(legend.text = element_text(size = 12))+
   scale_color_manual(values=palette)+
   theme(legend.key.width = unit(0.5,"cm"))+
   coord_cartesian(ylim = c(0,225))+
@@ -547,13 +518,13 @@ totalrep_HF<-na.omit(as.data.frame.table(tapply(thermo_h_long$value,list(thermo_
 names(totalrep_HF)<-c('Strain','Treatment',"Str_tr", "Replicate", "Totrep")
 
 #change factor levels
-totalrep_HF$Str_tr <- factor(totalrep_HF$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
+totalrep_HF$Str_tr <- factor(totalrep_HF$Str_tr, levels = c("N2 ev", "N2 daf-2", "SKN-1 ev", "SKN-1 daf-2"))
 
 #Create dabestr object for Cumming estimation plot
 totrep_HF_dab <-
   totalrep_HF %>%
   load(x =Str_tr, y=Totrep,
-       idx = c('N2_ev','N2_daf', 'SKN-1_ev','SKN-1_daf'))
+       idx = c('N2 ev','N2 daf-2', 'SKN-1 ev','SKN-1 daf-2'))
 
 #Get mean differences for estimation plot
 totrep_HF_p <- mean_diff(totrep_HF_dab)
@@ -562,6 +533,8 @@ totrep_HF_p <- mean_diff(totrep_HF_dab)
 tot_rep_plot_HF <- dabest_plot(totrep_HF_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
 
 tot_rep_plot_HF
+
+??dabest_plot
 
 totalrep_HF$Treatment <- relevel(totalrep_HF$Treatment, ref = 'ev')
 
@@ -582,6 +555,19 @@ Anova(LRS_HF_m2, type = 'II')
 #simulate residuals
 LRS_HF_sim2 <- simulateResiduals(LRS_HF_m2, plot = T)#OK!
 
+
+thermo_repro_all <- ggarrange(thermo_C_p + 
+  theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 20, unit = "pt"),plot.title = element_text(face = "bold")), thermo_H_p + 
+  theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 20, unit = "pt"),plot.title = element_text(face = "bold"))
+, tot_rep_plot_CF+ 
+  theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 25, unit = "pt")), tot_rep_plot_HF+ 
+  theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 25, unit = "pt")), nrow = 2, ncol = 2 , common.legend = T, labels = c('A','B','C','D'))
+
+thermo_repro_all <- as_ggplot(thermo_repro_all) +
+  theme(plot.background = element_rect(fill = "white", color = NA))
+
+
+ggsave("thermo_rep_all.png", plot = thermo_repro_all, bg = 'white',width = 12, height = 12, dpi = 300, units = "in")
 ```
 
 ## Lifespan
@@ -610,7 +596,7 @@ class(thermo_HF_LS$Age)
 thermo_HF_LS$Age <- as.numeric(thermo_HF_LS$Age)
 
 #Create survival object
-surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LS)
+survHF<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LS)
 
 #Create a binary variable for matricides (1 = matricide, 0 = no matricide) to analyse with logistic regression
 thermo_HF_LS$Matricide <- as.numeric(thermo_HF_LS$Cause == 'M')
@@ -623,7 +609,7 @@ summary(mat_mod)
 palette <- c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')
 
 #Survival curve
-THH_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_HF_LS, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.9), legend.title = "", title = "Start 25\u00B0C \n Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"),font.tickslab = c(14),  font.legend = c(16), font.title = c(16))
+THH_LS_plot <-ggsurvplot(survHF, ylab="Survival probability\n", data = thermo_HF_LS, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.8, 0.9), legend.title = "", title = "Start 25\u00B0C", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("N2 ev", "N2 daf-2", "SKN-1 ev", "SKN-1 daf"),font.tickslab = c(12),  font.legend = c(12), font.title = c(12))
 THH_LS_plot
 
 #Exclude matricides
@@ -631,10 +617,10 @@ thermo_HF_LSNM <- thermo_HF_LS %>%
   filter(thermo_HF_LS$Cause != 'M')
 
 #Create survival object for matricide censored data
-surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LSNM)
+survHF_NM<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LSNM)
 
 #Create survival curves
-LS_plot_matcen_THH <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_HF_LSNM, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.2), legend.title = "", palette = palette, title = "Start 25\u00B0C \n Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"), font.tickslab = c(14), font.legend = c(16), font.title = c(16))
+LS_plot_matcen_THH <-ggsurvplot(survHF_NM, ylab="Survival probability\n", data = thermo_HF_LSNM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.2, 0.2), legend.title = "", palette = palette, title = "Start 25\u00B0C", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("N2 ev", "N2 daf-2", "SKN-1 ev", "SKN-1 daf-1"), font.tickslab = c(12), font.legend = c(12), font.title = c(12))
 LS_plot_matcen_THH
 
 #Sometimes NAs are produced creating an additional non-existent factor level - omit NAs first
@@ -682,7 +668,7 @@ HF_contrasts <- ggplot(df_HF, aes(x = Comparison, y = logHR, colour = Strain)) +
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison (within strain)",
+    x = "Treatment comparison \n(within strain)",
     y = "Log hazard ratio (HR)"
   ) +
     scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -729,7 +715,7 @@ HF_NM_contrasts <- ggplot(df_HF_NM, aes(x = Comparison, y = logHR, colour = Stra
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison (within strain)",
+    x = "Treatment comparison \n(within strain)",
     y = "Log hazard ratio (HR)"
   ) +
   scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -824,6 +810,21 @@ EH_m1_NM <- glmmTMB(status ~ Strain * Treatment.ID + (1 | ID) + (1 | Day), famil
     data = EH_thermo_HF_LSNM)
 
 summary(EH_m1_NM)#these results are the same as cox model - will use the cox model for consistency
+
+
+#Group plots for both temperature starts
+thermocycle_all <- ggarrange(THC_LS_plot$plot+ theme(plot.title = element_text(face = "bold")), THH_LS_plot$plot+ theme(plot.title = element_text(face = "bold")), CF_contrasts, HF_contrasts, nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'))
+
+thermocycle_all
+ggsave("thermocycle_all.png", plot = thermocycle_all, width = 12, height = 8, dpi = 300, units = "in")
+
+
+#Group plots with matricides censored
+thermocycle_all_NM <- ggarrange(LS_plot_matcen_THC$plot + theme(plot.title = element_text(face = "bold")), LS_plot_matcen_THH$plot+ theme(plot.title = element_text(face = "bold")), CF_NM_contrasts, HF_NM_contrasts, nrow = 2, ncol =2, common.legend = T, labels = c('A','B','C','D'))
+
+thermocycle_all_NM
+
+ggsave("thermocycle_NM_all.png", plot = thermocycle_all_NM, bg = 'white',width = 12, height = 8, dpi = 300, units = "in")
 ```
 
 
@@ -843,6 +844,11 @@ skn_long <- SKN_20C_rep %>%
 skn_long <- skn_long %>%
   dplyr::select(c('ID','Treatment','Day','value'))
 
+#rename treatments
+skn_long$Treatment <- as.factor(skn_long$Treatment)
+levels(skn_long$Treatment) <- list('ev' = 'ev', 'daf-2' = 'daf')
+
+
 #get rid of NAs
 skn_long <- na.omit(skn_long)
 
@@ -853,13 +859,13 @@ skn_20C_p <-ggplot(data=skn_long, aes(x=factor(Day), y=value, group=Treatment, c
   stat_summary(fun.data="mean_cl_boot", geom="point", size = 3, position = position_dodge(0.5)) +
   stat_summary(fun.data="mean_cl_boot", geom="line",  size=1.2, position = position_dodge(0.5)) +
   theme_classic()+
-  labs(y="Offspring number", x="")+
+  labs(y="Offspring number", x="Day")+
   labs(col="")+
-  theme(axis.title.y = element_text(size=20))+
-  theme(axis.title.x = element_text(size=20))+
-  theme(axis.text= element_text(size = 18))+
-  theme(legend.text = element_text(size = 18))+
-  scale_color_manual(values=c('#4DBBD5FF','#E64B35FF'))+
+  theme(axis.title.y = element_text(size=14))+
+  theme(axis.title.x = element_text(size=14))+
+  theme(axis.text= element_text(size = 12))+
+  theme(legend.text = element_text(size = 12))+
+  scale_color_manual(values=c('#E64B35FF','#4DBBD5FF'))+
   theme(legend.key.width = unit(0.5,"cm"))+
   coord_cartesian(ylim = c(0,225))+
   theme(legend.position = c(0.1, 0.9))
@@ -935,8 +941,6 @@ totalrep_SKN<-na.omit(as.data.frame.table(tapply(skn_long$value,list(skn_long$Tr
 #rename columns
 names(totalrep_SKN)<-c("Treatment", "Replicate", "Totrep")
 
-#rename factor levels of treatment
-totalrep_SKN$Treatment <- revalue(totalrep_SKN$Treatment, c('ev' = 'ev', 'daf' = 'daf-2'))
 
 #create dabestr object for plotting cumming estimation
 totrep_SKN_dab <-
@@ -948,7 +952,7 @@ totrep_SKN_dab <-
 totrep_SKN_p <- mean_diff(totrep_SKN_dab)
 
 #cumming estimation plot for LRS in SKN-1 at 20C with daf or ev
-tot_rep_SKN_plot <- dabest_plot(totrep_SKN_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 16, swarm_y_text = 14, contrast_y_text = 16, contrast_x_text = 14, raw_marker_alpha = 0.3, tufte_size = 1 )
+tot_rep_SKN_plot <- dabest_plot(totrep_SKN_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 14, swarm_y_text = 14, contrast_y_text = 16, contrast_x_text = 14, raw_marker_alpha = 0.3, tufte_size = 1 )
 tot_rep_SKN_plot
 
 
@@ -1018,10 +1022,10 @@ SKN_20C_LS$Treatment.ID <- droplevels(SKN_20C_LS$Treatment.ID)
 SKN_20C_LS$Plate.ID <- as.factor(SKN_20C_LS$Plate.ID)
 
 #Create survival object for SKN-1 mutants at 20C
-surv<-survfit(Surv(Age,Event)~Treatment.ID,data=SKN_20C_LS)
+surv_SKN<-survfit(Surv(Age,Event)~Treatment.ID,data=SKN_20C_LS)
 
 #Create survival curve from survival object
-SKN_20C_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = SKN_20C_LS, size= 0.8, font.ylab= 18, font.xlab= 18, palette=c('#E64B35FF','#4DBBD5FF'), legend = c(0.8, 0.8), legend.title = "", legend.labs = c('ev','daf-2'), title = "", censor = FALSE, xlab = "\nDay", xlim=c(0,35), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+SKN_20C_LS_plot <-ggsurvplot(surv_SKN, ylab="Survival probability\n", data = SKN_20C_LS, size= 0.8, font.ylab= 14, font.xlab= 14, palette=c('#E64B35FF','#4DBBD5FF'), legend = c(0.8, 0.8), legend.title = "", legend.labs = c('ev','daf-2'), title = "", censor = FALSE, xlab = "Day", xlim=c(0,35), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12))
 
 SKN_20C_LS_plot
 
@@ -1032,11 +1036,6 @@ Anova(cox_SKN_20C, type = 'II')
 
 #test model
 cox.zph(cox_SKN_20C)#OK
-
-#Use forest plot function with cox results
-SKN_forest <-meforest(cox_SKN_20C, "ev")
-SKN_forest
-
 
 
 #Use emmeans because of negligible effect of plate.ID
@@ -1061,7 +1060,7 @@ df_SKN$Comparison <- df_SKN$contrast
 #Create forest plot for differences of treatments within strains
 SKN_contrasts <- ggplot(df_SKN, aes(x = Comparison, y = logHR)) +
   geom_point(size = 4, color = '#4DBBD5FF') +
-  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2, color = 'grey50') +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1,color ='#4DBBD5FF')+
   coord_flip() +
   #scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
@@ -1082,10 +1081,10 @@ SKN_20C_LS_NM <- SKN_20C_LS %>%
   filter(Cause != 'M')
 
 #Create survival object
-surv<-survfit(Surv(Age,Event)~Treatment.ID,data=SKN_20C_LS_NM)
+surv_SKN_NM<-survfit(Surv(Age,Event)~Treatment.ID,data=SKN_20C_LS_NM)
 
 #Survival plot
-SKN_NM_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = SKN_20C_LS_NM, size= 0.8, font.ylab= 18, font.xlab= 18, palette=c('#E64B35FF','#4DBBD5FF'), legend = c(0.8, 0.8), legend.title = "", legend.labs = c('ev','daf-2'), title = "", censor = FALSE, xlab = "\nDay", xlim=c(0,35), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+SKN_NM_LS_plot <-ggsurvplot(surv_SKN_NM, ylab="Survival probability", data = SKN_20C_LS_NM, size= 0.8, font.ylab= 14, font.xlab= 14, palette=c('#E64B35FF','#4DBBD5FF'), legend = c(0.8, 0.8), legend.title = "", legend.labs = c('ev','daf-2'), title = "", censor = FALSE, xlab = "Day", xlim=c(0,35), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12))
 
 SKN_NM_LS_plot
 
@@ -1095,16 +1094,6 @@ summary(cox_SKN_20C_NM)
 Anova(cox_SKN_20C_NM, type = 'II')
 #Test model
 cox.zph(cox_SKN_20C_NM)#OK
-
-#Create forest plot
-SKN_NM_forest <-meforest(cox_SKN_20C_NM, "ev")
-SKN_NM_forest
-
-#Combine all survival and forest plots for 20C SKN-1 mutants
-SKN_LS_all_plot <- ggarrange(SKN_20C_LS_plot$plot, SKN_NM_LS_plot$plot, SKN_forest, SKN_NM_forest, common.legend = T, nrow = 2, ncol = 2,heights = c(2, 1), labels = c('A', 'B'))
-
-SKN_LS_all_plot
-
 
 #Use emmeans because of negligible effect of plate.ID
 SKN_NM_emm <- emmeans(cox_SKN_20C_NM, ~ Treatment.ID)  # EMMs of treatment 
@@ -1128,7 +1117,7 @@ df_SKN_NM$Comparison <- df_SKN_NM$contrast
 #Create forest plot for differences of treatments within strains
 SKN_NM_contrasts <- ggplot(df_SKN_NM, aes(x = Comparison, y = logHR)) +
   geom_point(size = 4, color = '#4DBBD5FF') +
-  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2, color = 'grey50') +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1,color ='#4DBBD5FF')+
   coord_flip() +
   #scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
@@ -1144,7 +1133,12 @@ SKN_NM_contrasts <- ggplot(df_SKN_NM, aes(x = Comparison, y = logHR)) +
 
 SKN_NM_contrasts
 
+#Group all plots for 20C skn-1 data
+SKN_20C_all <- ggarrange(SKN_NM_LS_plot$plot, skn_20C_p, SKN_NM_contrasts+theme(plot.margin = margin(t = 5, r = 5, b = 25, l = 40, unit = "pt")), tot_rep_SKN_plot+theme(plot.margin = margin(t = 5, r = 5, b = 5, l = 40, unit = "pt")), heights = c(1.3, 1), common.legend = T, labels = c('A','B','C','D'))
+SKN_20C_all
 
+
+ggsave("SKN_20C_all.png", plot = SKN_20C_all, bg = 'white',width = 12, height = 10, dpi = 300, units = "in")
 ```
 
 # SKN-1 in 25C
@@ -1180,7 +1174,7 @@ SKN_25$Str_tr_temp <- relevel(SKN_25$Str_tr_temp, ref = 'N2_ev_25')
 surv_SKN25<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_25)
 
 #Create survival curve
-SKN_25_plot <-ggsurvplot(surv_SKN25, ylab="Survival probability\n", data = SKN_25, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.8), legend.title = "", title = "", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'),censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+SKN_25_plot <-ggsurvplot(surv_SKN25, ylab="Survival probability\n", data = SKN_25, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.8, 0.8), legend.title = "", title = "25°C", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'),censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_25_plot
 
@@ -1192,21 +1186,10 @@ SKN_25_NM <- SKN_25 %>%
 surv_SKN25_NM<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_25_NM)
 
 #Create survival curve
-SKN_25_NM_plot <-ggsurvplot(surv_SKN25_NM, ylab="Survival probability\n", data = SKN_25_NM, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.8), legend.title = "", title = "", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+SKN_25_NM_plot <-ggsurvplot(surv_SKN25_NM, ylab="Survival probability\n", data = SKN_25_NM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.8, 0.8), legend.title = "", title = "25°C", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_25_NM_plot
 
-#Also try excluding explosions - see if it effects results
-SKN_25_NMNE <- SKN_25 %>%
-  filter(Cause != 'E' & Cause != 'M')
-
-#Create survival object
-surv_SKN25_NMNE<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_25_NMNE)
-
-#Create survival curves
-SKN_25_NMNE_plot <-ggsurvplot(surv_SKN25_NMNE, ylab="Survival probability\n", data = SKN_25_NMNE, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.8), legend.title = "", title = "", censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
-
-SKN_25_NMNE_plot
 
 #Make sure Str-tr_temp is a factor
 SKN_25_NM$Str_tr_temp <- as.factor(SKN_25_NM$Str_tr_temp)
@@ -1239,77 +1222,229 @@ SKN_only_25$Treatment.ID <- as.factor(SKN_only_25$Treatment.ID)
 levels(SKN_only_25$Treatment.ID)
 SKN_only_25$Treatment.ID <- droplevels(SKN_only_25$Treatment.ID)
 
-#Coxme model
-cox_SKN_25_only <- coxme(Surv(Age, Event) ~ Treatment.ID*Temperature + (1|Plate.ID), data = SKN_only_25)
+#Combine Treatment and temperature because of imbalance
+SKN_only_25 <- SKN_only_25 %>%
+  unite(Tr_temp, 'Treatment.ID','Temperature', remove = F)
+
+#set ev as reference level
+SKN_only_25$Tr_temp <- as.factor(SKN_only_25$Tr_temp)
+SKN_only_25$Tr_temp <- relevel(SKN_only_25$Tr_temp, ref = 'ev_25')
+
+#Coxme model with combined effect of treatment and temperature to account for developmental thermocycle treatment
+cox_SKN_25_only <- coxme(Surv(Age, Event) ~ Tr_temp + (1|Plate.ID), data = SKN_only_25)
+summary(cox_SKN_25_only)
+Anova(cox_SKN_25_only, type = 'II')
+#test model
+cox.zph(cox_SKN_25_only)# global p = 0.004 - check with EH analysis
+
+#Matricides censored
+SKN_only_25_NM <- SKN_only_25 %>%
+  filter(Cause !='M')
+
+#Coxme model with combined effect of treatment and temperature to account for developmental thermocycle treatment with matricides censored
+cox_SKN_25_only_NM <- coxme(Surv(Age, Event) ~ Tr_temp + (1|Plate.ID), data = SKN_only_25_NM)
+summary(cox_SKN_25_only_NM)
+Anova(cox_SKN_25_only_NM, type = 'II')
+
+#test model
+cox.zph(cox_SKN_25_only_NM)# global p = 0.054 OK
 
 
 #Filter out N2s
-N2_only <- SKN_25 %>%
+N2_only_25 <- SKN_25 %>%
   filter(Strain == 'N2')
 
+#Set ev as reference level
+N2_only_25$Treatment.ID <- as.factor(N2_only_25$Treatment.ID)
+N2_only_25$Treatment.ID <- relevel(N2_only_25$Treatment.ID, ref = 'ev')
 
-#Forest plot function
-meforest <- function(cox, N2_ev_25){  
-  require(AICcmodavg)
-  require(ggplot2)
-  require(forcats)
-  store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
-  ref <- c(paste(N2_ev_25), 0,NA, NA)
-  store[1,] <- ref
-  for (x in 1:length(cox$coefficients)){
-    y = x+1
-    mean<-cox$coefficients[x]
-    emean <- (mean)
-    CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
-    CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
-    eCIL <- (CIL)
-    eCUL <- (CUL)
-    store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
-  colnames(store) <- c("Str_tr_temp", "mean", "CIL","CUL")
-  store <- as.data.frame(store)
-  store$mean <- as.numeric(as.character(store$mean))
-  store$CIL <- as.numeric(as.character(store$CIL))
-  store$CUL <- as.numeric(as.character(store$CUL))
-  forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Str_tr_temp, colour = Str_tr_temp)) +
-    geom_point(size=4, shape = 19, colour = c('#E64B35FF','#4DBBD5FF','#00A087FF', '#3C5488FF','#F39B7FFF')) +
-    geom_errorbarh(height=0.25, size=0.9,  colour = c('#E64B35FF','#4DBBD5FF','#00A087FF', '#3C5488FF','#F39B7FFF')) +
-    theme_minimal() +
-    geom_vline(xintercept=0, linetype="dotted", size=0.8) +
-    xlab("Hazard Ratio")+
-    ylab("")+
-    theme(
-      axis.text = element_text(size = 16),
-      axis.title = element_text(size = 18)
-    )+
-    scale_y_discrete(limits = (levels(store$Str_tr_temp)), labels = c('N2_ev_25' = 'N2 ev', 'Str_tr_tempN2_daf_25' = 'N2 daf-2', 'Str_tr_tempSKN_ev_25' = 'SKN-1 ev', 'Str_tr_tempSKN_daf_25' = 'SKN-1 daf-2', 'Str_tr_tempSKN_daf_25F' = 'SKN-1 daf-2 15C \n~ L2-L3'))+
-    expand_limits(x = c(-0.75,0.75))
-  return(forest)
-}
+#Coxme model with treatment as factor
+cox_N2_only <- coxme(Surv(Age, Event) ~ Treatment.ID + (1|Plate.ID), data = N2_only_25)
+summary(cox_N2_only)
+Anova(cox_N2_only, type = 'II')
 
-
-#Cox mixed effects model
-cox_SKN_25_NM <- coxme(Surv(Age, Event) ~ Str_tr_temp + (1|Plate.ID), data = SKN_25_NM)
-
-#test model with plot too
-cox.zph(cox_SKN_25_NM)#OK - but only just acceptable
-plot(cox.zph(cox_SKN_25_NM))
-
-#create forest plot
-SKN_25_NM_forest <- meforest(cox_SKN_25_NM, 'N2_ev_25')
-
-SKN_25_NM_forest
-
-#Including matricides
-cox_SKN_25 <- coxme(Surv(Age, Event) ~ Str_tr_temp + (1|Plate.ID), data = SKN_25)
 #test model
-cox.zph(cox_SKN_25)#not OK
+cox.zph(cox_N2_only)#OK p>0.05
 
-#Forest plot
-SKN_25_forest <- meforest(cox_SKN_25, 'N2_ev_25')
+#Censor matricides
+N2_only_25_NM <- N2_only_25 %>%
+  filter(Cause !='M')
 
-SKN_25_allplot <- ggarrange(SKN_25_NM_plot$plot, SKN_25_NM_forest, nrow = 2, heights = c(1.5, 1))
+#coxme model with treatment as factor with matricides censored
+cox_N2_only_NM <- coxme(Surv(Age, Event) ~ Treatment.ID + (1|Plate.ID), data = N2_only_25_NM)
+summary(cox_N2_only_NM)
+Anova(cox_N2_only_NM, type = 'II')
 
-SKN_25_allplot
+#test model
+cox.zph(cox_N2_only_NM)#p > 0.05 OK
+
+#Check with EH analysis
+
+#Matricides included
+#Change the format of the Date columns to actual dates and add ID
+SKN_only_25_EH<- SKN_only_25 %>%
+  mutate(
+    D1 = as.Date(paste0(D1, "-2025"), format = "%d-%b-%Y"),
+    Death.Date = as.Date(paste0(Death.Date, "-2025"), format = "%d-%b-%Y"))%>%
+  mutate(ID = row_number())
+
+
+
+#Create a new column status which contains '0' for any day the worm is alive and '1' for the date that it dies
+EH_SKN_only_25 <- SKN_only_25_EH %>%
+  filter(!is.na(D1), !is.na(Death.Date)) %>%
+  rowwise() %>%
+  mutate(Date = list(seq(D1, Death.Date, by = "1 day"))) %>%
+  unnest(Date) %>%
+  ungroup() %>%
+  group_by(ID) %>%
+  mutate(
+    Day = row_number(),    # day counter per individual
+    status = if_else(Date == Death.Date, 1, 0)
+  ) %>%
+  ungroup() %>%
+  dplyr::select(c(ID, Strain, Tr_temp,Treatment.ID, Plate.ID, Worm, Cause, Date, Day, status, Age, Event))
+
+#remove causes of death we want censored
+EH_SKN_only_25 <- EH_SKN_only_25 %>%
+  filter(Cause != 'W' & Cause != 'E' & Cause != 'L')
+
+#make sure this all worked!
+head(EH_SKN_only_25)
+
+#run binomial glmer - include ID for repeated measures as random factor and Day to account for time on survival
+SKN_25_EH_m1 <- glmmTMB(status ~ Tr_temp + (1 | ID) + (1 | Day), family = "binomial",
+    data = EH_SKN_only_25)
+
+summary(SKN_25_EH_m1)#these results are the same as cox model - will use the cox model for consistency
+
+#Get contrasts - matricides included
+SKN_25_em1 <- emmeans(cox_SKN_25_only, "Tr_temp")
+N2_25_em2 <- emmeans(cox_N2_only, "Treatment.ID")
+SKN_25_c1 <- contrast(SKN_25_em1, method = "revpairwise")  # or whatever method suits
+N2_25_c2 <- contrast(N2_25_em2, method = "revpairwise")
+
+#put contrasts into df and name
+SKN_25_c1_df <- as.data.frame(SKN_25_c1)
+SKN_25_c1_df$model <- "SKN-1"
+N2_25_c2_df <- as.data.frame(N2_25_c2)
+N2_25_c2_df$model <- "N2"
+
+#calculate Cis
+SKN_25_c1_df$lower.CL <- SKN_25_c1_df$estimate - 1.96 * SKN_25_c1_df$SE
+SKN_25_c1_df$upper.CL <- SKN_25_c1_df$estimate + 1.96 * SKN_25_c1_df$SE
+N2_25_c2_df$lower.CL <- N2_25_c2_df$estimate - 1.96 * N2_25_c2_df$SE
+N2_25_c2_df$upper.CL <- N2_25_c2_df$estimate + 1.96 *N2_25_c2_df$SE
+
+#combine dfs
+all_25_df <- rbind(SKN_25_c1_df, N2_25_c2_df)
+
+#remove contrast of daf-25F to daf-25
+all_25_df <- all_25_df %>%
+  filter(contrast != 'daf_25F - daf_25')
+
+# Optional: create a combined label
+all_25_df$label <- paste(all_25_df$model, all_25_df$contrast, sep = ": ")
+
+
+
+#change contrast names
+all_25_df$contrast <- fct_recode(all_25_df$contrast,
+  "SKN-1: daf-2 - ev" = "daf_25 - ev_25",
+  "SKN-1: daf-2 with cycle - ev" = "daf_25F - ev_25",
+  "N2: daf-2 - ev" = "daf - ev")
+
+levels(all_25_df$contrast)
+
+#make labels for plot
+all_25_df <- all_25_df %>%
+  mutate(label = recode(label,
+    "SKN-1: daf_25 - ev_25"  = "SKN-1: daf-2 - ev",
+    "SKN-1: daf_25F - ev_25" = "SKN-1: daf-2 with cycle - ev",
+    "N2: daf - ev"           = "N2: daf-2 - ev"
+  ))
+
+#Plot HRs for N2 and SKN-1 together
+SKN_N2_25_HR <- ggplot(all_25_df, aes(x = estimate, y = label, color = contrast)) +
+  geom_point(size = 4) +
+  geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  labs(x = "Log Hazard Ratio", y = "") +
+  scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  theme_minimal()+
+    theme(legend.position = 'none',
+         axis.text= element_text(size = 12),
+         axis.title = element_text(size = 14))+
+  guides(color = "none", fill = "none", shape = "none")
+  
+SKN_N2_25_HR
+
+#Get EMMS - matricides censored
+SKN_25NM_em1 <- emmeans(cox_SKN_25_only_NM, "Tr_temp")
+N2_25NM_em2 <- emmeans(cox_N2_only_NM, "Treatment.ID")
+
+#Get contrasts
+SKN_25NM_c1 <- contrast(SKN_25NM_em1, method = "revpairwise")  # or whatever method suits
+N2_25NM_c2 <- contrast(N2_25NM_em2, method = "revpairwise")
+
+#Make contrasts into df and name
+SKN_25NM_c1_df <- as.data.frame(SKN_25NM_c1)
+SKN_25NM_c1_df$model <- "SKN-1"
+
+#Make contrasts into df and name
+N2_25NM_c2_df <- as.data.frame(N2_25NM_c2)
+N2_25NM_c2_df$model <- "N2"
+
+#calculate CI
+SKN_25NM_c1_df$lower.CL <- SKN_25NM_c1_df$estimate - 1.96 * SKN_25NM_c1_df$SE
+SKN_25NM_c1_df$upper.CL <- SKN_25NM_c1_df$estimate + 1.96 * SKN_25NM_c1_df$SE
+
+#calculate CI
+N2_25NM_c2_df$lower.CL <- N2_25NM_c2_df$estimate - 1.96 * N2_25NM_c2_df$SE
+N2_25NM_c2_df$upper.CL <- N2_25NM_c2_df$estimate + 1.96 *N2_25NM_c2_df$SE
+
+#combine datasets for SKN and N2 into one for plot
+all_25NM_df <- rbind(SKN_25NM_c1_df, N2_25NM_c2_df)
+
+#Exclude daf-25cycle and daf-25 contrast - want to know how it's different from controls
+all_25NM_df <- all_25NM_df %>%
+  filter(contrast != 'daf_25F - daf_25')
+
+# create a combined label
+all_25NM_df$label <- paste(all_25NM_df$model, all_25NM_df$contrast, sep = ": ")
+
+
+#change contrast names
+all_25NM_df$contrast <- fct_recode(all_25NM_df$contrast,
+  "SKN-1: daf-2 - ev" = "daf_25 - ev_25",
+  "SKN-1: daf-2 with cycle - ev" = "daf_25F - ev_25",
+  "N2: daf-2 - ev" = "daf - ev")
+
+levels(all_25NM_df$contrast)
+
+#make them labels for plot
+all_25NM_df <- all_25NM_df %>%
+  mutate(label = recode(label,
+    "SKN-1: daf_25 - ev_25"  = "SKN-1: daf-2 - ev",
+    "SKN-1: daf_25F - ev_25" = "SKN-1: daf-2 with cycle - ev",
+    "N2: daf - ev"           = "N2: daf-2 - ev"
+  ))
+
+#create plot combining N2 and SKN 
+SKN_N2_25NM_HR <- ggplot(all_25NM_df, aes(x = estimate, y = label, color = contrast)) +
+  geom_point(size = 4) +
+  geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  labs(x = "Log Hazard Ratio", y = "") +
+  scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  theme_minimal()+
+    theme(legend.position = 'none',
+         axis.text= element_text(size = 12),
+         axis.title = element_text(size = 14))+
+  guides(color = "none", fill = "none", shape = "none")
+
+SKN_N2_25NM_HR
+
 ```
 
 # SKN-1 in 15C
@@ -1342,7 +1477,7 @@ SKN_15$Str_tr_temp <- factor(SKN_15$Str_tr_temp, levels = c('N2_ev_15','N2_daf_1
 surv_SKN15<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_15)
 
 #Create survival curves
-SKN_15_plot <-ggsurvplot(surv_SKN15, ylab="Survival probability\n", data = SKN_15, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.2), legend.title = "", title = "",palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+SKN_15_plot <-ggsurvplot(surv_SKN15, ylab="Survival probability\n", data = SKN_15, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.2, 0.2), legend.title = "", title = "15°C",palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12), legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_15_plot
 
@@ -1354,93 +1489,229 @@ SKN_15_NM <- SKN_15 %>%
 surv_SKN15_NM<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_15_NM)
 
 #Create survival curves
-SKN_15_NM_plot <-ggsurvplot(surv_SKN15_NM, ylab="Survival probability\n", data = SKN_15_NM, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.2), legend.title = "", title = "", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(14), palette = c('#4DBBD5FF','#E64B35FF', '#3C5488FF','#F39B7FFF','#00A087FF'), font.legend = c(16))
+SKN_15_NM_plot <-ggsurvplot(surv_SKN15_NM, ylab="Survival probability\n", data = SKN_15_NM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.2, 0.2), legend.title = "", title = "15°C", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), palette = c('#4DBBD5FF','#E64B35FF', '#3C5488FF','#F39B7FFF','#00A087FF'), font.legend = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_15_NM_plot
 
-#Exclude matricides and explosions
-SKN_15_NMNE <- SKN_15 %>%
-  filter(Cause != 'E' & Cause != 'M')
 
-#Create survival object
-surv_SKN15_NMNE<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_15_NMNE)
+#Analyse two strains individually due to additionally treatment of thermocycling during development in SKN-1 only
+#FIlter only SKNs 
+SKN_only_15 <- SKN_15 %>%
+  filter(Strain == 'SKN')
 
-#Create survival curves
-SKN_15_NMNE_plot <-ggsurvplot(surv_SKN15_NMNE, ylab="Survival probability\n", data = SKN_15_NMNE, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.8), legend.title = "", title = "", censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+str(SKN_only_15)
 
-SKN_15_NMNE_plot
+#Check levels of Strain
+SKN_only_15$Strain <- as.factor(SKN_only_15$Strain)
+levels(SKN_only_15$Strain)
 
-#Make sure Str_tr_temp is a factor
-SKN_15_NM$Str_tr_temp <- as.factor(SKN_15_NM$Str_tr_temp)
+#Check levels of temperature
+levels(SKN_only_15$Temperature)
 
-#Set N2 Ev as reference level
-SKN_15_NM$Str_tr_temp <- relevel(SKN_15_NM$Str_tr_temp, ref = 'N2_ev_15')
+#Need to drop levels - still thinks it has 15C treatments 
+SKN_only_15$Temperature <- droplevels(SKN_only_15$Temperature)
+levels(SKN_only_15$Temperature)
 
-#Forest plot function
-meforest <- function(cox, N2_ev_15){
-  require(AICcmodavg)
-  require(ggplot2)
-  require(forcats)
-  store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
-  ref <- c(paste(N2_ev_15), 0,NA, NA)
-  store[1,] <- ref
-  for (x in 1:length(cox$coefficients)){
-    y = x+1
-    mean<-cox$coefficients[x]
-    emean <- (mean)
-    CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
-    CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
-    eCIL <- (CIL)
-    eCUL <- (CUL)
-    store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
-  colnames(store) <- c("Str_tr_temp", "mean", "CIL","CUL")
-  store <- as.data.frame(store)
-  store$mean <- as.numeric(as.character(store$mean))
-  store$CIL <- as.numeric(as.character(store$CIL))
-  store$CUL <- as.numeric(as.character(store$CUL))
-  forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Str_tr_temp, colour = Str_tr_temp)) +
-    geom_point(size=4, shape = 19, colour = c('#E64B35FF','#4DBBD5FF','#3C5488FF','#F39B7FFF','#00A087FF')) +
-    geom_errorbarh(height=0.25, size=0.9,  colour = c('#E64B35FF','#4DBBD5FF','#3C5488FF','#F39B7FFF','#00A087FF')) +
-    theme_minimal() +
-    geom_vline(xintercept=0, linetype="dotted", size=0.8) +
-    xlab("Hazard Ratio")+
-    ylab("")+
-    theme(
-      axis.text = element_text(size = 16),
-      axis.title = element_text(size = 18)
-    )+
-    scale_y_discrete(limits = (levels(store$Str_tr_temp)), labels = c('N2_ev_15' = 'N2 ev', 'Str_tr_tempN2_daf_15' = 'N2 daf-2', 'Str_tr_tempSKN_ev_15' = 'SKN-1 ev', 'Str_tr_tempSKN_daf_15' = 'SKN-1 daf-2', 'Str_tr_tempSKN_daf_15F' = 'SKN-1 daf-2 25C \n~ L2-L3')) +
-    expand_limits(x = c(-0.75,0.75))
-  return(forest)
-}
+#Check levels of Treatment
+SKN_only_15$Treatment.ID <- as.factor(SKN_only_15$Treatment.ID)
+levels(SKN_only_15$Treatment.ID)
+SKN_only_15$Treatment.ID <- droplevels(SKN_only_15$Treatment.ID)
 
+#Combine Treatment and temperature because of imbalance
+SKN_only_15 <- SKN_only_15 %>%
+  unite(Tr_temp, 'Treatment.ID','Temperature', remove = F)
 
-#Mixed effects cox model for no matricides
-cox_SKN_15 <- coxme(Surv(Age, Event) ~ Str_tr_temp + (1|Plate.ID), data = SKN_15_NM)
+#set ev as reference level
+SKN_only_15$Tr_temp <- as.factor(SKN_only_15$Tr_temp)
+SKN_only_15$Tr_temp <- relevel(SKN_only_15$Tr_temp, ref = 'ev_15')
+
+#Coxme model with combined effect of treatment and temperature to account for developmental thermocycle treatment
+cox_SKN_15_only <- coxme(Surv(Age, Event) ~ Tr_temp + (1|Plate.ID), data = SKN_only_15)
+summary(cox_SKN_15_only)
+Anova(cox_SKN_15_only, type = 'II')
 
 #test model
-cox.zph(cox_SKN_15)#OK
+cox.zph(cox_SKN_15_only)# OK! p = 0.18
 
-#create forest plot
-meforest(cox_SKN_15, 'N2_ev_15')
+#Matricides censored
+SKN_only_15_NM <- SKN_only_15 %>%
+  filter(Cause !='M')
 
-#mixed effects cox model with matricides
-cox2 <- coxme(Surv(Age, Event) ~ Str_tr_temp + (1|Plate.ID), data = SKN_15)
+#Coxme model with combined effect of treatment and temperature to account for developmental thermocycle treatment with matricides censored
+cox_SKN_15_only_NM <- coxme(Surv(Age, Event) ~ Tr_temp + (1|Plate.ID), data = SKN_only_15_NM)
+summary(cox_SKN_15_only_NM)
+Anova(cox_SKN_15_only_NM, type = 'II')
+#test model
+cox.zph(cox_SKN_15_only_NM)# global p = 0.41, OK!
+
+
+#Filter out N2s
+N2_only_15 <- SKN_15 %>%
+  filter(Strain == 'N2')
+
+#Set ev as reference level
+N2_only_15$Treatment.ID <- as.factor(N2_only_15$Treatment.ID)
+N2_only_15$Treatment.ID <- relevel(N2_only_15$Treatment.ID, ref = 'ev')
+
+#Coxme model with treatment as factor
+cox_N2_15_only <- coxme(Surv(Age, Event) ~ Treatment.ID + (1|Plate.ID), data = N2_only_15)
+summary(cox_N2_15_only)
+Anova(cox_N2_15_only, type = 'II')
 
 #test model
-cox.zph(cox2)#OK 
+cox.zph(cox_N2_15_only)#OK p = 0.79
 
-#create forest plot from model
-SKN15_NM_forest <- meforest(cox2, 'N2_ev_15')
-SKN15_NM_forest
+#Censor matricides
+N2_only_15_NM <- N2_only_15 %>%
+  filter(Cause !='M')
 
-#Combine 15C plot with forest plot
-SKN_15_allplot <- ggarrange(SKN_15_NM_plot$plot, SKN15_NM_forest, nrow = 2, heights = c(1.5,1))
-SKN_15_allplot
+#coxme model with treatment as factor with matricides censored
+cox_N2_15_only_NM <- coxme(Surv(Age, Event) ~ Treatment.ID + (1|Plate.ID), data = N2_only_15_NM)
+summary(cox_N2_15_only_NM)
+Anova(cox_N2_15_only_NM, type = 'II')
+#test model
+cox.zph(cox_N2_15_only_NM)#p = 0.87 OK
 
-#Combined 15 and 25C plots for direct comparison
-SKN_25_15_all_plot <- ggarrange(SKN_15_allplot, SKN_25_allplot, ncol = 2, labels = c('A: 15 C', 'B: 25C'))
-SKN_all_plot
+
+#Get contrasts - matricides included
+SKN_15_em1 <- emmeans(cox_SKN_15_only, "Tr_temp")
+N2_15_em2 <- emmeans(cox_N2_15_only, "Treatment.ID")
+SKN_15_c1 <- contrast(SKN_15_em1, method = "revpairwise")  # or whatever method suits
+N2_15_c2 <- contrast(N2_15_em2, method = "revpairwise")
+
+#put contrasts into df and name
+SKN_15_c1_df <- as.data.frame(SKN_15_c1)
+SKN_15_c1_df$model <- "SKN-1"
+N2_15_c2_df <- as.data.frame(N2_15_c2)
+N2_15_c2_df$model <- "N2"
+
+#calculate Cis
+SKN_15_c1_df$lower.CL <- SKN_15_c1_df$estimate - 1.96 * SKN_15_c1_df$SE
+SKN_15_c1_df$upper.CL <- SKN_15_c1_df$estimate + 1.96 * SKN_15_c1_df$SE
+N2_15_c2_df$lower.CL <- N2_15_c2_df$estimate - 1.96 * N2_15_c2_df$SE
+N2_15_c2_df$upper.CL <- N2_15_c2_df$estimate + 1.96 *N2_15_c2_df$SE
+
+#combine dfs
+all_15_df <- rbind(SKN_15_c1_df, N2_15_c2_df)
+
+#remove contrast of daf-15F to daf-15
+all_15_df <- all_15_df %>%
+  filter(contrast != 'daf_15F - daf_15')
+
+# Optional: create a combined label
+all_15_df$label <- paste(all_15_df$model, all_15_df$contrast, sep = ": ")
+
+
+
+#change contrast names
+all_15_df$contrast <- fct_recode(all_15_df$contrast,
+  "SKN-1: daf-2 - ev" = "daf_15 - ev_15",
+  "SKN-1: daf-2 with cycle - ev" = "daf_15F - ev_15",
+  "N2: daf-2 - ev" = "daf - ev")
+
+levels(all_15_df$contrast)
+
+#make labels for plot
+all_15_df <- all_15_df %>%
+  mutate(label = recode(label,
+    "SKN-1: daf_15 - ev_15"  = "SKN-1: daf-2 - ev",
+    "SKN-1: daf_15F - ev_15" = "SKN-1: daf-2 with cycle - ev",
+    "N2: daf - ev"           = "N2: daf-2 - ev"
+  ))
+
+#Plot HRs for N2 and SKN-1 together
+SKN_N2_15_HR <- ggplot(all_15_df, aes(x = estimate, y = label, color = contrast)) +
+  geom_point(size = 4) +
+  geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  labs(x = "Log Hazard Ratio", y = "") +
+  scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  theme_minimal()+
+    theme(legend.position = 'none',
+         axis.text= element_text(size = 12),
+         axis.title = element_text(size = 14))+
+  guides(color = "none", fill = "none", shape = "none")
+  
+SKN_N2_15_HR
+
+#Get EMMS - matricides censored
+SKN_15NM_em1 <- emmeans(cox_SKN_15_only_NM, "Tr_temp")
+N2_15NM_em2 <- emmeans(cox_N2_15_only_NM, "Treatment.ID")
+
+#Get contrasts
+SKN_15NM_c1 <- contrast(SKN_15NM_em1, method = "revpairwise")  # or whatever method suits
+N2_15NM_c2 <- contrast(N2_15NM_em2, method = "revpairwise")
+
+#Make contrasts into df and name
+SKN_15NM_c1_df <- as.data.frame(SKN_15NM_c1)
+SKN_15NM_c1_df$model <- "SKN-1"
+
+#Make contrasts into df and name
+N2_15NM_c2_df <- as.data.frame(N2_15NM_c2)
+N2_15NM_c2_df$model <- "N2"
+
+#calculate CI
+SKN_15NM_c1_df$lower.CL <- SKN_15NM_c1_df$estimate - 1.96 * SKN_15NM_c1_df$SE
+SKN_15NM_c1_df$upper.CL <- SKN_15NM_c1_df$estimate + 1.96 * SKN_15NM_c1_df$SE
+
+#calculate CI
+N2_15NM_c2_df$lower.CL <- N2_15NM_c2_df$estimate - 1.96 * N2_15NM_c2_df$SE
+N2_15NM_c2_df$upper.CL <- N2_15NM_c2_df$estimate + 1.96 *N2_15NM_c2_df$SE
+
+#combine datasets for SKN and N2 into one for plot
+all_15NM_df <- rbind(SKN_15NM_c1_df, N2_15NM_c2_df)
+
+#Exclude daf-15cycle and daf-15 contrast - want to know how it's different from controls
+all_15NM_df <- all_15NM_df %>%
+  filter(contrast != 'daf_15F - daf_15')
+
+# create a combined label
+all_15NM_df$label <- paste(all_15NM_df$model, all_15NM_df$contrast, sep = ": ")
+
+
+#change contrast names
+all_15NM_df$contrast <- fct_recode(all_15NM_df$contrast,
+  "SKN-1: daf-2 - ev" = "daf_15 - ev_15",
+  "SKN-1: daf-2 with cycle - ev" = "daf_15F - ev_15",
+  "N2: daf-2 - ev" = "daf - ev")
+
+levels(all_15NM_df$contrast)
+
+#make them labels for plot
+all_15NM_df <- all_15NM_df %>%
+  mutate(label = recode(label,
+    "SKN-1: daf_15 - ev_15"  = "SKN-1: daf-2 - ev",
+    "SKN-1: daf_15F - ev_15" = "SKN-1: daf-2 with cycle - ev",
+    "N2: daf - ev"           = "N2: daf-2 - ev"
+  ))
+
+#create plot combinding 
+SKN_N2_15NM_HR <- ggplot(all_15NM_df, aes(x = estimate, y = label, color = contrast)) +
+  geom_point(size = 4) +
+  geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  labs(x = "Log Hazard Ratio", y = "") +
+  scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  theme_minimal()+
+    theme(legend.position = 'none',
+         axis.text= element_text(size = 12),
+         axis.title = element_text(size = 14))+
+  guides(color = "none", fill = "none", shape = "none")
+
+SKN_N2_15NM_HR
+
+
+SKN_15_25_all <- ggarrange(SKN_15_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_25_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_N2_15_HR,  SKN_N2_25_HR, nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'))
+SKN_15_25_all
+
+ggsave("SKN_15_25_all.png", plot = SKN_15_25_all, bg = 'white',width = 12, height = 8, dpi = 300, units = "in")
+
+SKN_15_25_NM_all <- ggarrange(SKN_15_NM_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_25_NM_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_N2_15NM_HR,  SKN_N2_25NM_HR+theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 5, unit = "pt")), nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'))
+SKN_15_25_NM_all
+
+
+ggsave("SKN_15_25_NM_all.png", plot = SKN_15_25_NM_all, bg = 'white',width = 12, height = 8, dpi = 300, units = "in")
+
 
 ```
 
