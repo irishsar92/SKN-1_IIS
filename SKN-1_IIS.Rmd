@@ -65,13 +65,15 @@ SKN_20C_LS <- read.csv('SKN1_20C_LS.csv')
 #Lifespan experiment SKN-1 mutants with and without daf-2 RNAi KD in 15 and 25C, with additional treatment of daf-2 RNAi KD SKN-1 mutants starting with 24 hrs of opposite temperature to test effects of temperature on early development of SKN-1 mutants
 SKN_15_25_LS <- read.csv('SKN_N2_LS_15_25.csv')
 
+#Create colour palette
+palette <- c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')
 
 ```
 
 
 #Cold first Thermocycling
 
-Reproduction and lifespan assays following 24 hour thermo-cycling between 15 and 25C with 15C first across four treatments: SKN-1 mutant + daf-2 RNAi, SKN-1 mutant + ev (control), N2 + daf-2 RNAi, N2 + ev
+Reproduction and lifespan assays following 24 hour thermo-cycling between 15 and 25C with 15C as starting temperature across four treatments: SKN-1 mutant + daf-2 RNAi, SKN-1 mutant + ev (control), N2 + daf-2 RNAi, N2 + ev
 
 ## Reproduction 
 ```{r}
@@ -129,6 +131,10 @@ levels(thermo_c_long$Day) <- list('1' = 'D1', '2' = 'D2', '3' = 'D3', '4' = 'D4'
 thermo_c_long$Day <- as.numeric(thermo_c_long$Day)
 
 
+#Set ev as reference treatment level
+thermo_c_long$Treatment <- as.factor(thermo_c_long$Treatment)
+thermo_c_long$Treatment <- relevel(thermo_c_long$Treatment, ref = 'ev')
+
 #Analyse age-specific repro - use glmmTMB negative binomial due to high level of zeroes
 CF_m1 <- glmmTMB(value ~ Strain *Treatment*Day + (1|ID), family = nbinom1, data = thermo_c_long)
 
@@ -171,7 +177,7 @@ totrep_CF_dab <-
 totrep_CF_dab_p <- mean_diff(totrep_CF_dab)
 
 #Create Cumming estimation plot
-tot_rep_plot_CF <- dabest_plot(totrep_CF_dab_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
+tot_rep_plot_CF <- dabest_plot(totrep_CF_dab_p, FALSE, raw_marker_spread = 1, swarm_label = 'Total reproduction',custom_palette = 'npg', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
 
 tot_rep_plot_CF
 
@@ -203,41 +209,41 @@ Anova(LRS_CF2, type = 'II')
 
 #Function for creating forest plot
 meforest <- function(cox, N2_ev){ 
-  require(AICcmodavg)
-  require(ggplot2)
-  require(forcats)
-  store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
-  ref <- c(paste(N2_ev), 0,NA, NA)
-  store[1,] <- ref
-  for (x in 1:length(cox$coefficients)){
-    y = x+1
-    mean<-cox$coefficients[x]
-    emean <- (mean)
-    CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
-    CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
-    eCIL <- (CIL)
-    eCUL <- (CUL)
-    store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
-  colnames(store) <- c("Str_tr", "mean", "CIL","CUL")
-  store <- as.data.frame(store)
-  store$mean <- as.numeric(as.character(store$mean))
-  store$CIL <- as.numeric(as.character(store$CIL))
-  store$CUL <- as.numeric(as.character(store$CUL))
-  forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Str_tr, colour = Str_tr)) +
-    geom_point(size=4, shape = 19, colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
-    geom_errorbarh(height=0.25, size=0.9,  colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
-    theme_minimal() +
-    geom_vline(xintercept=0, linetype="dotted", size=0.8) +
-    xlab("Hazard Ratio")+
-    ylab("")+
-    theme(
-      axis.text = element_text(size = 18),
-      axis.title = element_text(size = 18)
-    )+
-    scale_y_discrete(limits = (levels(store$Str_tr)), labels = c('Str_trSKN-1_ev' = 'SKN-1 ev', 'Str_trSKN-1_daf' = 'SKN-1 daf-2', 'Str_trN2_daf' = 'N2 daf-2', 'N2_ev' = 'N2 ev'))+
-    expand_limits(x = c(-1.5,0.5))
-  return(forest)
-}
+    require(AICcmodavg)
+    require(ggplot2)
+    require(forcats)
+    store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
+    ref <- c(paste(N2_ev), 0,NA, NA)
+    store[1,] <- ref
+    for (x in 1:length(cox$coefficients)){
+      y = x+1
+      mean<-cox$coefficients[x]
+      emean <- (mean)
+      CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
+      CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
+      eCIL <- (CIL)
+      eCUL <- (CUL)
+      store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
+    colnames(store) <- c("Str_tr", "mean", "CIL","CUL")
+    store <- as.data.frame(store)
+    store$mean <- as.numeric(as.character(store$mean))
+    store$CIL <- as.numeric(as.character(store$CIL))
+    store$CUL <- as.numeric(as.character(store$CUL))
+    forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Str_tr, colour = Str_tr)) +
+      geom_point(size=4, shape = 19, colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
+      geom_errorbarh(height=0.25, size=0.9,  colour = c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')) +
+      theme_minimal() +
+      geom_vline(xintercept=0, linetype="dotted", size=0.8) +
+      xlab("Hazard Ratio")+
+      ylab("")+
+      theme(
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 18)
+      )+
+      scale_y_discrete(limits = (levels(store$Str_tr)), labels = c('Str_trSKN-1_ev' = 'SKN-1 ev', 'Str_trSKN-1_daf' = 'SKN-1 daf-2', 'Str_trN2_daf' = 'N2 daf-2', 'N2_ev' = 'N2 ev'))+
+      expand_limits(x = c(-1.5,0.5))
+    return(forest)
+  }
 
 #Create a combined variable for strain and treatment since forest plot can't do interactions
 thermo_CF_LS <- thermo_CF_LS %>%
@@ -255,13 +261,6 @@ thermo_CF_LS$Str_tr <- relevel(thermo_CF_LS$Str_tr, ref = 'N2_ev')
 #Exclude unnatural causes of mortality, L = loss, W = wall, E = explosion
 thermo_CF_LS <- thermo_CF_LS %>%
   filter(thermo_CF_LS$Cause != 'L' & thermo_CF_LS$Cause !='W' & thermo_CF_LS$Cause != 'E')
-
-#Create a binary variable for matricides
-thermo_CF_LS$Matricide <- as.numeric(thermo_CF_LS$Cause == 'M')
-
-CF_mat_mod <- glmer(Matricide ~ Str_tr + (1|Plate.ID), data = thermo_CF_LS, family = 'binomial')
-summary(C_mat_mod)
-
 
 #Create survival object for plotting Kaplan Meier curves
 surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LS)
@@ -282,32 +281,115 @@ surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LSNM)
 LS_plot_matcen_THC <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_CF_LSNM, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", palette = palette, title = "Start 15\u00B0C \n Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"), font.tickslab = c(14), font.legend = c(16), font.title = c(16))
 LS_plot_matcen_THC
 
+#Sometimes NAs are produced creating an additional non-existent factor level - omit NAs first
+thermo_CF_LS <- na.omit(thermo_CF_LS)
+thermo_CF_LSNM <- na.omit(thermo_CF_LSNM)
+
+#Drop non-existent factor level - or cox models get confused
+thermo_CF_LS$Str_tr <- droplevels(thermo_CF_LS$Str_tr)
+levels(thermo_CF_LS$Str_tr)
+thermo_CF_LSNM$Str_tr <- droplevels(thermo_CF_LSNM$Str_tr)
+
 #Mixed effects cox proportional hazards model to test effect of treatment on survival probability
-CF_cox <- coxme(Surv(Age, Event) ~ Str_tr + (1|Plate.ID), data = thermo_CF_LS)
+CF_cox <- coxme(Surv(Age, Event) ~ Strain * Treatment.ID + (1|Plate.ID), data = thermo_CF_LS)
+summary(CF_cox)
+Anova(CF_cox, type = 'III')
 
 #Test model 
-cox.zph(CF_cox)#p< 0.0001 - need EH analysis
+cox.zph(CF_cox)#Strain * Treatment is fine
+plot(cox.zph(CF_cox))
 
-#Mixed effects cox proportional hazards model to test effect of treatment on survival probability
-CF_NM_cox <- coxme(Surv(Age, Event) ~ Str_tr + (1|Plate.ID), data = thermo_CF_LSNM)
+#Use emmeans because of negligible effect of plate.ID
+CF_emm <- emmeans(CF_cox, ~ Treatment.ID | Strain)  # EMMs of treatment within each strain
+CF_emm
+#Get contrasts
+contrasts_CF <- contrast(CF_emm, method = "pairwise", by = "Strain")
 
-#Test model
-cox.zph(CF_NM_cox) # p = 0.023
-plot(cox.zph(CF_NM_cox))#plot looks relatively OK - will check with EH analysis
+#make a dataframe out of the contrast summary
+df_CF <- as.data.frame(summary(contrasts_CF, infer = TRUE))
 
-#Create forest plot from function above
-CF_forest <- meforest(CF_cox, 'N2_ev')
-CF_forest
+# Rename columns
+names(df_CF)[names(df_CF) == "estimate"] <- "logHR"
+df_CF$HR <- exp(df_CF$logHR)
+df_CF$lower.HR <- exp(df_CF$asymp.LCL)
+df_CF$upper.HR <- exp(df_CF$asymp.UCL)
 
-#Create forest plot from function above
-CF_NM_forest <- meforest(CF_NM_cox, 'N2_ev')
-CF_NM_forest
+#fix labels
+df_CF$Comparison <- paste0(df_CF$contrast, " (", df_CF$Strain, ")")
 
+#Create forest plot for differences of treatments within strains
+CF_contrasts <- ggplot(df_CF, aes(x = Comparison, y = logHR, colour = Strain)) +
+  geom_point(size = 4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
+  coord_flip() +
+  scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
+  labs(
+    title = "",
+    x = "Treatment comparison (within strain)",
+    y = "Log hazard ratio (HR)"
+  ) +
+    scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
+  theme_minimal(base_size = 12)+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.position = 'none')
+
+CF_contrasts
+
+#Mixed effects cox proportional hazards model to test effect of treatment on survival prob
+CF_NM_cox <- coxme(Surv(Age, Event) ~ Strain * Treatment.ID + (1|Plate.ID), data = thermo_CF_LSNM)
+summary(CF_NM_cox)
+Anova(CF_NM_cox, type = 'III')
+
+#test model
+plot(cox.zph(CF_NM_cox))
+cox.zph(CF_NM_cox)#close p-values - combined with plot acceptable 
+
+#Use emmeans because of negligible effect of plate.ID
+CF_NM_emm <- emmeans(CF_NM_cox, ~ Treatment.ID | Strain)  # EMMs of treatment within each strain
+CF_NM_emm
+#Get contrasts
+contrasts_CF_NM <- contrast(CF_NM_emm, method = "pairwise", by = "Strain")
+contrasts_CF_NM
+#make a dataframe out of the contrast summary
+df_CF_NM <- as.data.frame(summary(contrasts_CF_NM, infer = TRUE))
+
+# Rename columns
+names(df_CF_NM)[names(df_CF_NM) == "estimate"] <- "logHR"
+df_CF_NM$HR <- exp(df_CF_NM$logHR)
+df_CF_NM$lower.HR <- exp(df_CF_NM$asymp.LCL)
+df_CF_NM$upper.HR <- exp(df_CF_NM$asymp.UCL)
+
+#fix labels
+df_CF_NM$Comparison <- paste0(df_CF_NM$contrast, " (", df_CF_NM$Strain, ")")
+
+#Create forest plot for differences of treatments within strains
+CF_NM_contrasts <- ggplot(df_CF_NM, aes(x = Comparison, y = logHR, colour = Strain)) +
+  geom_point(size = 4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
+  coord_flip() +
+  scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
+  labs(
+    title = "",
+    x = "Treatment comparison (within strain)",
+    y = "Log hazard ratio (HR)"
+  ) +
+  scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
+  theme_minimal(base_size = 12)+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.position = 'none')
+
+CF_NM_contrasts
 
 ```
 
 
+
 # Hot first thermocycling
+Reproduction and lifespan assays following 24 hour thermo-cycling between 15 and 25C with 25C as starting temperature across four treatments: SKN-1 mutant + daf-2 RNAi, SKN-1 mutant + ev (control), N2 + daf-2 RNAi, N2 + ev
 
 ## Reproduction
 ```{r}
@@ -394,7 +476,6 @@ HF_m4 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID), ziformula = ~ Day + 
 thermo_h_long <- tibble::rowid_to_column(thermo_h_long, "OLRE")
 HF_m5 <- glmmTMB(value ~ Strain * Treatment * Day + (1|ID) + (1|OLRE), ziformula = ~ Day, family = nbinom2(), data = thermo_h_long)
 summary(HF_m5)
-
 HF_sim5 <- simulateResiduals(HF_m5, plot = T)
 testDispersion(HF_sim5)
 testZeroInflation(HF_sim5)
@@ -406,12 +487,11 @@ summary(HF_m6)#won't converge - previous model showed no signfiicant 3-way inter
 #Model without 3 way interaction
 HF_m7 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~Day + Strain, family = nbinom2(), data = thermo_h_long)
 summary(HF_m7)#this converged
-
 HF_sim7 <- simulateResiduals(HF_m7, plot = T)
 testDispersion(HF_sim7)#better
 testZeroInflation(HF_sim7)#better but still zero inflated
 
-
+#Try adding 1 + Day as ziformula
 HF_m8 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~1+Day + Strain, family = nbinom2(), data = thermo_h_long)
 summary(HF_m8)
 
@@ -419,29 +499,35 @@ HF_sim8 <- simulateResiduals(HF_m8, plot = T)
 testDispersion(HF_sim8)#better
 testZeroInflation(HF_sim8)#slightly better
 
-
+#Try adding strain as interaction with day to ziformula
 HF_m9 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~1+Day * Strain, family = nbinom2(), data = thermo_h_long)
 summary(HF_m9)#won't converge
 
+#try adding strain additively to day in ziformula
 HF_m10 <- glmmTMB(value ~ Strain*Treatment + Strain * Day + Treatment *Day + (1|ID) + (1|OLRE), ziformula = ~1+Day + Strain, family = nbinom1(), data = thermo_h_long)
 summary(HF_m10)#doesn't converge
 
 
-#Try using splines
+#Try using splines in ziformula
 library(splines)
 HF_m11 <- glmmTMB(value ~ Strain*Treatment + Strain*Day + Treatment*Day + (1|ID), ziformula =~ ns(Day, df = 3), family = nbinom2(), data = thermo_h_long)
 summary(HF_m11)
 HF_sim11 <- simulateResiduals(HF_m11, plot = T)
 testDispersion(HF_sim11)
 testZeroInflation(HF_sim11)
+Anova(HF_m11, type = 'III')
 
+#try df = 2 splines
 HF_m11_2 <- glmmTMB(value ~ Strain*Treatment + Strain*Day + Treatment*Day + (1|ID), ziformula =~ ns(Day, df = 2), family = nbinom2(), data = thermo_h_long)
 
+#try df = 4 splines
 HF_m11_4 <- glmmTMB(value ~ Strain*Treatment + Strain*Day + Treatment*Day + (1|ID), ziformula =~ ns(Day, df = 4), family = nbinom2(), data = thermo_h_long)
 
+#df = 3 is best - but makes little difference whether it's 2, 3, 4
 AIC(HF_m11, HF_m11_2, HF_m11_4)
-#Calculate total reproduction over experiment per individual
-totalrep_HF<-na.omit(as.data.frame.table(tapply(thermo_h_long$value,list(thermo_h_long$Strain, thermo_h_long$Treatment, thermo_h_long$Str_tr, thermo_h_long$ID),sum)))
+
+
+
 
 library(ggeffects)
 
@@ -453,6 +539,9 @@ plot(preds)
 preds2 <- ggpredict(HF_m11, terms = c("Day", "Treatment", "Strain"))
 plot(preds2)
 
+
+#Calculate total reproduction over experiment per individual
+totalrep_HF<-na.omit(as.data.frame.table(tapply(thermo_h_long$value,list(thermo_h_long$Strain, thermo_h_long$Treatment, thermo_h_long$Str_tr, thermo_h_long$ID),sum)))
 
 #rename columns
 names(totalrep_HF)<-c('Strain','Treatment',"Str_tr", "Replicate", "Totrep")
@@ -474,6 +563,7 @@ tot_rep_plot_HF <- dabest_plot(totrep_HF_p, FALSE, raw_marker_spread = 1, swarm_
 
 tot_rep_plot_HF
 
+totalrep_HF$Treatment <- relevel(totalrep_HF$Treatment, ref = 'ev')
 
 #Check distribution of LRS 
 hist(totalrep_HF$Totrep)#normal
@@ -488,7 +578,7 @@ LRS_HF_sim1 <- simulateResiduals(LRS_HF_m1, plot = T)#OK!
 #Try removing interaction
 LRS_HF_m2 <- lm(Totrep ~ Treatment + Strain, data = totalrep_HF)
 summary(LRS_HF_m2)#SKN-1 have (significantly) lower LRS now in hot first
-
+Anova(LRS_HF_m2, type = 'II')
 #simulate residuals
 LRS_HF_sim2 <- simulateResiduals(LRS_HF_m2, plot = T)#OK!
 
@@ -496,61 +586,244 @@ LRS_HF_sim2 <- simulateResiduals(LRS_HF_m2, plot = T)#OK!
 
 ## Lifespan
 ```{r}
-
-
+#Combine Strain and Treatment into one variable for plotting
 thermo_HF_LS <- thermo_HF_LS %>%
   unite(Str_tr, c('Strain', 'Treatment.ID'), remove = F)
 
+#Make sure it's a factor
 thermo_HF_LS$Str_tr <- as.factor(thermo_HF_LS$Str_tr)
 
+#Set N2 Ev as reference level
 thermo_HF_LS$Str_tr <- relevel(thermo_HF_LS$Str_tr, ref = 'N2_ev')
 
+#FIlter out unnatural deaths (Loss, walling, explosions)
 thermo_HF_LS <- thermo_HF_LS %>%
   filter(thermo_HF_LS$Cause != 'L' & thermo_HF_LS$Cause !='W' & thermo_HF_LS$Cause != 'E')
 
+#name factor levels of Str_tr
 thermo_HF_LS$Str_tr <- factor(thermo_HF_LS$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
 
+#Check what Age is classed as
 class(thermo_HF_LS$Age)
 
+#Change to numeric
 thermo_HF_LS$Age <- as.numeric(thermo_HF_LS$Age)
 
+#Create survival object
 surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LS)
 
+#Create a binary variable for matricides (1 = matricide, 0 = no matricide) to analyse with logistic regression
 thermo_HF_LS$Matricide <- as.numeric(thermo_HF_LS$Cause == 'M')
 
+#binomial glmer for matricide occurrence (logistic regression)
 mat_mod <- glmer(Matricide ~ Str_tr + (1|Plate.ID), data = thermo_HF_LS, family = 'binomial')
 summary(mat_mod)
 
+#Create colour palette
 palette <- c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')
 
+#Survival curve
 THH_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_HF_LS, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.9), legend.title = "", title = "Start 25\u00B0C \n Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"),font.tickslab = c(14),  font.legend = c(16), font.title = c(16))
 THH_LS_plot
 
+#Exclude matricides
 thermo_HF_LSNM <- thermo_HF_LS %>%
   filter(thermo_HF_LS$Cause != 'M')
 
+#Create survival object for matricide censored data
 surv<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LSNM)
 
+#Create survival curves
 LS_plot_matcen_THH <-ggsurvplot(surv, ylab="Survival probability\n", data = thermo_HF_LSNM, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.2), legend.title = "", palette = palette, title = "Start 25\u00B0C \n Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"), font.tickslab = c(14), font.legend = c(16), font.title = c(16))
 LS_plot_matcen_THH
 
+#Sometimes NAs are produced creating an additional non-existent factor level - omit NAs first
+thermo_HF_LS <- na.omit(thermo_HF_LS)
+thermo_HF_LSNM <- na.omit(thermo_HF_LSNM)
 
-THH_cox <- coxme(Surv(Age, Event) ~ Str_tr + (1|Plate.ID), data = thermo_HF_LS)
-cox.zph(THH_cox)
+#Drop non-existent factor level - or cox models get confused
+thermo_HF_LS$Str_tr <- droplevels(thermo_HF_LS$Str_tr)
+levels(thermo_HF_LS$Str_tr)
+thermo_HF_LSNM$Str_tr <- droplevels(thermo_HF_LSNM$Str_tr)
 
-THH_NM_cox <- coxme(Surv(Age, Event) ~ Str_tr + (1|Plate.ID), data = thermo_HF_LSNM)
+#Mixed effects cox proportional hazards model to test effect of treatment on survival probability
+HF_cox <- coxme(Surv(Age, Event) ~ Strain * Treatment.ID + (1|Plate.ID), data = thermo_HF_LS)
+summary(HF_cox)
+Anova(HF_cox, type = 'III')
+
+#Test model 
+cox.zph(HF_cox)#check with EH analysis
+
+#Use emmeans because of negligible effect of plate.ID
+HF_emm <- emmeans(HF_cox, ~ Treatment.ID | Strain)  # EMMs of treatment within each strain
+HF_emm
+
+#Get contrasts
+contrasts_HF <- contrast(HF_emm, method = "pairwise", by = "Strain")
+
+#make a dataframe out of the contrast summary
+df_HF <- as.data.frame(summary(contrasts_HF, infer = TRUE))
+
+# Rename columns
+names(df_HF)[names(df_HF) == "estimate"] <- "logHR"
+df_HF$HR <- exp(df_HF$logHR)
+df_HF$lower.HR <- exp(df_HF$asymp.LCL)
+df_HF$upper.HR <- exp(df_HF$asymp.UCL)
+
+#fix labels
+df_HF$Comparison <- paste0(df_HF$contrast, " (", df_HF$Strain, ")")
+
+#Create forest plot for differences of treatments within strains
+HF_contrasts <- ggplot(df_HF, aes(x = Comparison, y = logHR, colour = Strain)) +
+  geom_point(size = 4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
+  coord_flip() +
+  scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
+  labs(
+    title = "",
+    x = "Treatment comparison (within strain)",
+    y = "Log hazard ratio (HR)"
+  ) +
+    scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
+  theme_minimal(base_size = 12)+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.position = 'none')
+
+HF_contrasts
+
+#Mixed effects cox proportional hazards model to test effect of treatment on survival prob
+HF_NM_cox <- coxme(Surv(Age, Event) ~ Strain * Treatment.ID + (1|Plate.ID), data = thermo_HF_LSNM)
+summary(HF_NM_cox)
+Anova(HF_NM_cox, type = 'III')
+#test model
+plot(cox.zph(HF_NM_cox))
+cox.zph(HF_NM_cox)#compare to an EH analysis
+
+#Use emmeans because of negligible effect of plate.ID
+HF_NM_emm <- emmeans(HF_NM_cox, ~ Treatment.ID | Strain)  # EMMs of treatment within each strain
+HF_NM_emm
+
+#Get contrasts
+contrasts_HF_NM <- contrast(HF_NM_emm, method = "pairwise", by = "Strain")
+
+#make a dataframe out of the contrast summary
+df_HF_NM <- as.data.frame(summary(contrasts_HF_NM, infer = TRUE))
+
+# Rename columns
+names(df_HF_NM)[names(df_HF_NM) == "estimate"] <- "logHR"
+df_HF_NM$HR <- exp(df_HF_NM$logHR)
+df_HF_NM$lower.HR <- exp(df_HF_NM$asymp.LCL)
+df_HF_NM$upper.HR <- exp(df_HF_NM$asymp.UCL)
+
+#fix labels
+df_HF_NM$Comparison <- paste0(df_HF_NM$contrast, " (", df_HF_NM$Strain, ")")
+
+#Create forest plot for differences of treatments within strains
+HF_NM_contrasts <- ggplot(df_HF_NM, aes(x = Comparison, y = logHR, colour = Strain)) +
+  geom_point(size = 4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
+  coord_flip() +
+  scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
+  labs(
+    title = "",
+    x = "Treatment comparison (within strain)",
+    y = "Log hazard ratio (HR)"
+  ) +
+  scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
+  theme_minimal(base_size = 12)+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.position = 'none')
+
+HF_NM_contrasts
 
 
-THH_forest <- meforest(THH_cox, 'N2_ev')
-THH_forest
+#Check with EH analysis
 
-THH_NM_forest <- meforest(THH_NM_cox, 'N2_ev')
-THH_NM_forest
+#Matricides included
+#Change the format of the Date columns to ensure that R recognises them as actual dates
+thermo_HF_LS_EH <- thermo_HF_LS %>%
+  mutate(
+    D1 = as.Date(paste0(D1, "-2025"), format = "%d-%b-%Y"),
+    Death.Date = as.Date(paste0(Death.Date, "-2025"), format = "%d-%b-%Y")
+  )
+
+#Create an individual ID number for every worm
+thermo_HF_LS_EH <- thermo_HF_LS_EH %>%
+  mutate(ID = row_number())
+
+#Create a new column status which contains '0' for any day the worm is alive and '1' for the date that it dies
+EH_thermo_HF_LS <- thermo_HF_LS_EH %>%
+  filter(!is.na(D1), !is.na(Death.Date)) %>%
+  rowwise() %>%
+  mutate(Date = list(seq(D1, Death.Date, by = "1 day"))) %>%
+  unnest(Date) %>%
+  ungroup() %>%
+  group_by(ID) %>%
+  mutate(
+    Day = row_number(),    # day counter per individual
+    status = if_else(Date == Death.Date, 1, 0)
+  ) %>%
+  ungroup() %>%
+  dplyr::select(c(ID, Strain, Treatment.ID, Plate.ID, Worm, Cause, Date, Day, status, Age, Event))
+
+#remove causes of death we want censored
+EH_thermo_HF_LS <- EH_thermo_HF_LS %>%
+  filter(Cause != 'W' & Cause != 'E' & Cause != 'L')
+
+#make sure this all worked!
+head(EH_thermo_HF_LS)
+
+#run binomial glmer - include ID for repeated measures as random factor and Day to account for time on survival
+EH_m1 <- glmmTMB(status ~ Strain * Treatment.ID + (1 | ID) + (1 | Day), family = "binomial",
+    data = EH_thermo_HF_LS)
+
+summary(EH_m1)#these results are the same as cox model - will use the cox model for consistency
 
 
-THH_all_plot <- ggarrange(THH_LS_plot$plot, LS_plot_matcen_THH$plot, THH_forest, THH_NM_forest, common.legend = T, nrow = 2, ncol = 2,heights = c(2, 1), labels = c('A', 'B'))
-THH_all_plot
 
+#Matricides censored
+#Change the format of the Date columns to ensure that R recognises them as actual dates
+thermo_HF_LS_EHNM <- thermo_HF_LSNM %>%
+  mutate(
+    D1 = as.Date(paste0(D1, "-2025"), format = "%d-%b-%Y"),
+    Death.Date = as.Date(paste0(Death.Date, "-2025"), format = "%d-%b-%Y")
+  )
+
+#Create an individual ID number for every worm
+thermo_HF_LS_EHNM <- thermo_HF_LS_EHNM %>%
+  mutate(ID = row_number())
+
+#Create a new column status which contains '0' for any day the worm is alive and '1' for the date that it dies
+EH_thermo_HF_LSNM <- thermo_HF_LS_EHNM %>%
+  filter(!is.na(D1), !is.na(Death.Date)) %>%
+  rowwise() %>%
+  mutate(Date = list(seq(D1, Death.Date, by = "1 day"))) %>%
+  unnest(Date) %>%
+  ungroup() %>%
+  group_by(ID) %>%
+  mutate(
+    Day = row_number(),    # day counter per individual
+    status = if_else(Date == Death.Date, 1, 0)
+  ) %>%
+  ungroup() %>%
+  dplyr::select(c(ID, Strain, Treatment.ID, Plate.ID, Worm, Cause, Date, Day, status, Age, Event))
+
+#remove causes of death we want censored
+EH_thermo_HF_LSNM <- EH_thermo_HF_LSNM %>%
+  filter(Cause != 'W' & Cause != 'E' & Cause != 'L')
+
+#make sure this all worked!
+head(EH_thermo_HF_LSNM)
+
+#run binomial glmer - include ID for repeated measures as random factor and Day to account for time on survival
+EH_m1_NM <- glmmTMB(status ~ Strain * Treatment.ID + (1 | ID) + (1 | Day), family = "binomial",
+    data = EH_thermo_HF_LSNM)
+
+summary(EH_m1_NM)#these results are the same as cox model - will use the cox model for consistency
 ```
 
 
@@ -593,6 +866,68 @@ skn_20C_p <-ggplot(data=skn_long, aes(x=factor(Day), y=value, group=Treatment, c
 
 skn_20C_p
 
+#Get Day into a numeric form
+#Change day to a numeric variable for analysis
+skn_long$Day <- as.factor(skn_long$Day)
+levels(skn_long$Day) <- list('1' = 'D1', '2' = 'D2', '3' = 'D3', '4' = 'D4', '5' = 'D5')
+skn_long$Day <- as.numeric(skn_long$Day)
+
+#set ev as reference level
+skn_long$Treatment <- as.factor(skn_long$Treatment)
+skn_long$Treatment <- relevel(skn_long$Treatment, ref = 'ev')
+
+#Age-specific reproduction aanalysis with negative binomial GLMM
+m1_SKN <- glmmTMB(value ~ Treatment * Day + (1|ID), family = nbinom2(), data = skn_long)
+summary(m1_SKN)
+
+#model diagnostics
+sim_SKN1 <- simulateResiduals(m1_SKN, plot = T)
+testDispersion(sim_SKN1)#underdispersed
+testZeroInflation(sim_SKN1)#zero-inflated
+
+#Try adding zero inflation formula
+m2_SKN <- glmmTMB(value ~ Treatment*Day + (1|ID), ziformula = ~Day, family = nbinom2(), data = skn_long)
+summary(m2_SKN)#won't converge, try removing interaction (appears nonsig in previous model)
+
+#Remove interaction
+m3_SKN <- glmmTMB(value ~ Treatment + Day + (1|ID), family = nbinom2(), ziformula = ~ Day, data = skn_long)
+summary(m3_SKN)
+
+#diagnostic
+sim_SKN3 <- simulateResiduals(m3_SKN, plot = T)
+testZeroInflation(sim_SKN3)
+testDispersion(sim_SKN3)
+
+### Try a poisson model
+m4_SKN <- glmmTMB(value ~ Treatment * Day + (1|ID), family = poisson(), data = skn_long)
+AIC(m1_SKN, m4_SKN)#poisson has MUCH higher AIC
+
+#compare other models
+AIC(m1_SKN, m2_SKN, m3_SKN) #m3 is worse than m1
+
+#Try adding Day^2
+m5_SKN <- glmmTMB(value ~ Treatment * I(Day^2) + Treatment*Day + (1|ID), family = nbinom2(), data = skn_long)
+AIC(m1_SKN, m5_SKN)#huge improvement
+sim_SKN5 <- simulateResiduals(m5_SKN, plot = T)
+testDispersion(sim_SKN5)
+testZeroInflation(sim_SKN5)
+summary(m5_SKN)
+
+#Try adding zi formula
+m6_SKN <- glmmTMB(value ~ Treatment * I(Day^2) + Treatment*Day + (1|ID), ziformula = ~Day, family = nbinom2(), data = skn_long)
+#won't converge
+
+#Remove interaction between Treatment and Day
+m7_SKN <- glmmTMB(value ~ Treatment*I(Day^2) + Day + (1|ID), ziformula = ~Day, family = nbinom2(), data = skn_long)
+summary(m7_SKN)
+Anova(m7_SKN, type = 'III')
+sim_SKN7 <- simulateResiduals(m7_SKN, plot = T)
+testDispersion(sim_SKN7)
+
+m8_SKN <- glmmTMB(value ~ Treatment * Day + I(Day^2) + (1|ID), ziformula = ~Day, family = nbinom2(), data = skn_long )
+AIC(m7_SKN, m8_SKN)#these models are pretty much the same - use previous one as interest is in how treatment affect offspring number of days in curved day variable
+sim_SKN8 <- simulateResiduals(m8_SKN, plot = T)
+testDispersion(sim_SKN8)
 
 #sum up total number of offspring produced over experiment per individual
 totalrep_SKN<-na.omit(as.data.frame.table(tapply(skn_long$value,list(skn_long$Treatment, skn_long$ID),sum)))
@@ -616,9 +951,6 @@ totrep_SKN_p <- mean_diff(totrep_SKN_dab)
 tot_rep_SKN_plot <- dabest_plot(totrep_SKN_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'npg', swarm_x_text = 16, swarm_y_text = 14, contrast_y_text = 16, contrast_x_text = 14, raw_marker_alpha = 0.3, tufte_size = 1 )
 tot_rep_SKN_plot
 
-#combined age-specific repro plot and LRS
-skn_20C_rep <- ggarrange(skn_20C_p, tot_rep_plot+theme(plot.margin = unit(c(40,30,30,10), 'pt')), ncol = 2, widths = c(2, 1), labels = c('A','B'))
-skn_20C_rep
 
 #Look at distribution
   hist(totalrep_SKN$Totrep)#pretty skewed - but try LM
@@ -633,17 +965,11 @@ SKN_LRS_m2 <- glm(Totrep ~ Treatment, data = totalrep_SKN, family = Gamma(link =
 summary(SKN_LRS_m2)
 SKN_LRS_sim2 <- simulateResiduals(SKN_LRS_m2, plot = T)
 
-#Try link = identity
+#Try link = inverse
 SKN_LRS_m3 <- glm(Totrep ~ Treatment, data = totalrep_SKN, family = Gamma(link = 'inverse'))
 summary(SKN_LRS_m3)
 SKN_LRS_sim3 <- simulateResiduals(SKN_LRS_m3, plot = T)
-
-# Reflect so the skew becomes positive
-max_val <- max(totalrep_SKN$Totrep)
-totalrep_SKN$Totrep_reflected <- log(max_val + 1 - totalrep_SKN$Totrep)
-
-SKN_LRS_m4 <- lm(Totrep_reflected ~ Treatment, data = totalrep_SKN)
-summary(SKN_LRS_m4)
+Anova(SKN_LRS_m3, type = 'II')
 
 totalrep_SKN$Treatment <- as.factor(totalrep_SKN$Treatment)
 new_data2 <- data.frame(Treatment = levels(totalrep_SKN$Treatment))
@@ -669,44 +995,6 @@ ggplot(new_data2, aes(x = Treatment, y = fit)) +
 
 ##Lifespan
 ```{r}
-
-#Create forest plot function
-meforest <- function(cox, ev){
-  require(AICcmodavg)
-  require(ggplot2)
-  require(forcats)
-  store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
-  ref <- c(paste(ev), 0,NA, NA)
-  store[1,] <- ref
-  for (x in 1:length(cox$coefficients)){
-    y = x+1
-    mean<-cox$coefficients[x]
-    emean <- (mean)
-    CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
-    CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
-    eCIL <- (CIL)
-    eCUL <- (CUL)
-    store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
-  colnames(store) <- c("Treatment", "mean", "CIL","CUL")
-  store <- as.data.frame(store)
-  store$mean <- as.numeric(as.character(store$mean))
-  store$CIL <- as.numeric(as.character(store$CIL))
-  store$CUL <- as.numeric(as.character(store$CUL))
-  forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Treatment, colour = Treatment)) +
-    geom_point(size=4, shape = 19, colour = c('#E64B35FF','#4DBBD5FF')) +
-    geom_errorbarh(height=0.25, size=0.9,  colour = c('#E64B35FF','#4DBBD5FF')) +
-    theme_minimal() +
-    geom_vline(xintercept=0, linetype="dotted", size=0.8) +
-    xlab("Hazard Ratio")+
-    ylab("")+
-    theme(
-      axis.text = element_text(size = 16),
-      axis.title = element_text(size = 18)
-    )+
-    scale_y_discrete(limits = (levels(store$Treatment)), labels = c('Treatment.IDdaf-2'='daf-2', 'ev' = 'ev'))+
-    expand_limits(x = c(-0.75,0.75))
-  return(forest)
-}
 
 #Get rid of NAs
 SKN_20C_LS <- na.omit(SKN_20C_LS)
@@ -739,14 +1027,55 @@ SKN_20C_LS_plot
 
 #Mixed effects cox model for a effect of daf-2 on SKN-1 mutant lifespan
 cox_SKN_20C <- coxme(Surv(Age, Event) ~ Treatment.ID + (1|Plate.ID), data = SKN_20C_LS)
+summary(cox_SKN_20C)
+Anova(cox_SKN_20C, type = 'II')
 
 #test model
 cox.zph(cox_SKN_20C)#OK
-summary(cox_SKN_20C)
 
 #Use forest plot function with cox results
 SKN_forest <-meforest(cox_SKN_20C, "ev")
 SKN_forest
+
+
+
+#Use emmeans because of negligible effect of plate.ID
+SKN_emm <- emmeans(cox_SKN_20C, ~ Treatment.ID)  # EMMs of treatment 
+SKN_emm
+
+#Get contrasts
+contrasts_SKN <- contrast(SKN_emm, method = "revpairwise")
+
+#make a dataframe out of the contrast summary
+df_SKN <- as.data.frame(summary(contrasts_SKN, infer = TRUE))
+
+# Rename columns
+names(df_SKN)[names(df_SKN) == "estimate"] <- "logHR"
+df_SKN$HR <- exp(df_SKN$logHR)
+df_SKN$lower.HR <- exp(df_SKN$asymp.LCL)
+df_SKN$upper.HR <- exp(df_SKN$asymp.UCL)
+
+#fix labels
+df_SKN$Comparison <- df_SKN$contrast
+
+#Create forest plot for differences of treatments within strains
+SKN_contrasts <- ggplot(df_SKN, aes(x = Comparison, y = logHR)) +
+  geom_point(size = 4, color = '#4DBBD5FF') +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2) +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1,color ='#4DBBD5FF')+
+  coord_flip() +
+  #scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
+  labs(
+    title = "",
+    x = "Treatment comparison",
+    y = "Log hazard ratio (HR)"
+  ) +
+  theme_minimal(base_size = 12)+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.position = 'none')
+
+SKN_contrasts
 
 #Exclude matricides
 SKN_20C_LS_NM <- SKN_20C_LS %>%
@@ -763,7 +1092,7 @@ SKN_NM_LS_plot
 #Cox mixed effects model
 cox_SKN_20C_NM <- coxme(Surv(Age, Event) ~ Treatment.ID + (1|Plate.ID), data = SKN_20C_LS_NM)
 summary(cox_SKN_20C_NM)
-
+Anova(cox_SKN_20C_NM, type = 'II')
 #Test model
 cox.zph(cox_SKN_20C_NM)#OK
 
@@ -776,10 +1105,50 @@ SKN_LS_all_plot <- ggarrange(SKN_20C_LS_plot$plot, SKN_NM_LS_plot$plot, SKN_fore
 
 SKN_LS_all_plot
 
+
+#Use emmeans because of negligible effect of plate.ID
+SKN_NM_emm <- emmeans(cox_SKN_20C_NM, ~ Treatment.ID)  # EMMs of treatment 
+SKN_NM_emm
+
+#Get contrasts
+contrasts_SKN_NM <- contrast(SKN_NM_emm, method = "revpairwise")
+
+#make a dataframe out of the contrast summary
+df_SKN_NM <- as.data.frame(summary(contrasts_SKN_NM, infer = TRUE))
+
+# Rename columns
+names(df_SKN_NM)[names(df_SKN_NM) == "estimate"] <- "logHR"
+df_SKN_NM$HR <- exp(df_SKN_NM$logHR)
+df_SKN_NM$lower.HR <- exp(df_SKN_NM$asymp.LCL)
+df_SKN_NM$upper.HR <- exp(df_SKN_NM$asymp.UCL)
+
+#fix labels
+df_SKN_NM$Comparison <- df_SKN_NM$contrast
+
+#Create forest plot for differences of treatments within strains
+SKN_NM_contrasts <- ggplot(df_SKN_NM, aes(x = Comparison, y = logHR)) +
+  geom_point(size = 4, color = '#4DBBD5FF') +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2) +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1,color ='#4DBBD5FF')+
+  coord_flip() +
+  #scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
+  labs(
+    title = "",
+    x = "Treatment comparison",
+    y = "Log hazard ratio (HR)"
+  ) +
+  theme_minimal(base_size = 12)+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.position = 'none')
+
+SKN_NM_contrasts
+
+
 ```
 
 # SKN-1 in 25C
-Reproduction and lifespan assays in SKN-1 mutants and N2s with daf-2 or ev (control) RNAi treatments in 25C, including a treatment with a single 24-hour cycle of 15C at ~ L2 stage
+Lifespan assays in SKN-1 mutants and N2s with daf-2 or ev (control) RNAi treatments in 25C, including a treatment with a single 24-hour cycle of 15C at ~ L2 stage
 ## Lifespan
 ```{r}
 
@@ -845,6 +1214,40 @@ SKN_25_NM$Str_tr_temp <- as.factor(SKN_25_NM$Str_tr_temp)
 #Reset baseline to ev N2 in 25 only
 SKN_25_NM$Str_tr_temp <- relevel(SKN_25_NM$Str_tr_temp, ref = 'N2_ev_25')
 
+
+#Analyse within strains becaues of additional treatment only in SKN-1
+
+#FIlter only SKNs 
+SKN_only_25 <- SKN_25 %>%
+  filter(Strain == 'SKN')
+
+str(SKN_only_25)
+
+#Check levels of Strain
+SKN_only_25$Strain <- as.factor(SKN_only_25$Strain)
+levels(SKN_only_25$Strain)
+
+#Check levels of temperature
+levels(SKN_only_25$Temperature)
+
+#Need to drop levels - still thinks it has 15C treatments 
+SKN_only_25$Temperature <- droplevels(SKN_only_25$Temperature)
+levels(SKN_only_25$Temperature)
+
+#Check levels of Treatment
+SKN_only_25$Treatment.ID <- as.factor(SKN_only_25$Treatment.ID)
+levels(SKN_only_25$Treatment.ID)
+SKN_only_25$Treatment.ID <- droplevels(SKN_only_25$Treatment.ID)
+
+#Coxme model
+cox_SKN_25_only <- coxme(Surv(Age, Event) ~ Treatment.ID*Temperature + (1|Plate.ID), data = SKN_only_25)
+
+
+#Filter out N2s
+N2_only <- SKN_25 %>%
+  filter(Strain == 'N2')
+
+
 #Forest plot function
 meforest <- function(cox, N2_ev_25){  
   require(AICcmodavg)
@@ -883,6 +1286,7 @@ meforest <- function(cox, N2_ev_25){
   return(forest)
 }
 
+
 #Cox mixed effects model
 cox_SKN_25_NM <- coxme(Surv(Age, Event) ~ Str_tr_temp + (1|Plate.ID), data = SKN_25_NM)
 
@@ -908,7 +1312,9 @@ SKN_25_allplot <- ggarrange(SKN_25_NM_plot$plot, SKN_25_NM_forest, nrow = 2, hei
 SKN_25_allplot
 ```
 
-SKN 15 C
+# SKN-1 in 15C
+Lifespan assays in SKN-1 mutants and N2s with daf-2 or ev (control) RNAi treatments in 15C, including a treatment with a single 24-hour cycle of 25C at ~ L2 stage
+##Lifespan
 ```{r}
 
 #Include only 15C data
