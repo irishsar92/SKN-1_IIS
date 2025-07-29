@@ -355,7 +355,6 @@ CF_NM_contrasts
 ```
 
 
-
 # Hot first thermocycling
 Reproduction and lifespan assays following 24 hour thermo-cycling between 15 and 25C with 25C as starting temperature across four treatments: SKN-1 mutant + daf-2 RNAi, SKN-1 mutant + ev (control), N2 + daf-2 RNAi, N2 + ev
 
