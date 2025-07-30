@@ -271,7 +271,7 @@ CF_emm <- emmeans(CF_cox, ~ Treatment.ID | Strain)  # EMMs of treatment within e
 CF_emm
 #Get contrasts
 contrasts_CF <- contrast(CF_emm, method = "pairwise", by = "Strain")
-
+contrasts_CF
 #make a dataframe out of the contrast summary
 df_CF <- as.data.frame(summary(contrasts_CF, infer = TRUE))
 
@@ -287,13 +287,13 @@ df_CF$Comparison <- paste0(df_CF$contrast, " (", df_CF$Strain, ")")
 #Create forest plot for differences of treatments within strains
 CF_contrasts <- ggplot(df_CF, aes(x = Comparison, y = logHR, colour = Strain)) +
   geom_point(size = 4) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.8) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
   coord_flip() +
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison \n(within strain)",
+    x = "",
     y = "Log hazard ratio (HR)"
   ) +
     scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -334,13 +334,13 @@ df_CF_NM$Comparison <- paste0(df_CF_NM$contrast, " (", df_CF_NM$Strain, ")")
 #Create forest plot for differences of treatments within strains
 CF_NM_contrasts <- ggplot(df_CF_NM, aes(x = Comparison, y = logHR, colour = Strain)) +
   geom_point(size = 4) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.8) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
   coord_flip() +
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison \n(within strain)",
+    x = "",
     y = "Log hazard ratio (HR)"
   ) +
   scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -645,7 +645,7 @@ HF_emm
 
 #Get contrasts
 contrasts_HF <- contrast(HF_emm, method = "pairwise", by = "Strain")
-
+contrasts_HF
 #make a dataframe out of the contrast summary
 df_HF <- as.data.frame(summary(contrasts_HF, infer = TRUE))
 
@@ -661,13 +661,13 @@ df_HF$Comparison <- paste0(df_HF$contrast, " (", df_HF$Strain, ")")
 #Create forest plot for differences of treatments within strains
 HF_contrasts <- ggplot(df_HF, aes(x = Comparison, y = logHR, colour = Strain)) +
   geom_point(size = 4) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.8) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
   coord_flip() +
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison \n(within strain)",
+    x = "",
     y = "Log hazard ratio (HR)"
   ) +
     scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -692,7 +692,7 @@ HF_NM_emm
 
 #Get contrasts
 contrasts_HF_NM <- contrast(HF_NM_emm, method = "pairwise", by = "Strain")
-
+contrasts_HF_NM
 #make a dataframe out of the contrast summary
 df_HF_NM <- as.data.frame(summary(contrasts_HF_NM, infer = TRUE))
 
@@ -708,13 +708,13 @@ df_HF_NM$Comparison <- paste0(df_HF_NM$contrast, " (", df_HF_NM$Strain, ")")
 #Create forest plot for differences of treatments within strains
 HF_NM_contrasts <- ggplot(df_HF_NM, aes(x = Comparison, y = logHR, colour = Strain)) +
   geom_point(size = 4) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50", linewidth = 0.8) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1)+
   coord_flip() +
   scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
   labs(
     title = "",
-    x = "Treatment comparison \n(within strain)",
+    x = "",
     y = "Log hazard ratio (HR)"
   ) +
   scale_colour_manual(values = c('#4DBBD5FF','#3C5488FF'))+
@@ -812,18 +812,18 @@ summary(EH_m1_NM)#these results are the same as cox model - will use the cox mod
 
 
 #Group plots for both temperature starts
-thermocycle_all <- ggarrange(THC_LS_plot$plot+ theme(plot.title = element_text(face = "bold")), THH_LS_plot$plot+ theme(plot.title = element_text(face = "bold")), CF_contrasts, HF_contrasts, nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'))
+thermocycle_all <- ggarrange(THC_LS_plot$plot+ theme(plot.title = element_text(face = "bold")), THH_LS_plot$plot+ theme(plot.title = element_text(face = "bold")), CF_contrasts+theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 25, unit = "pt")), HF_contrasts+theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 25, unit = "pt")), nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'), heights = c(1.5, 1))
 
 thermocycle_all
-ggsave("thermocycle_all.png", plot = thermocycle_all, width = 12, height = 8, dpi = 300, units = "in")
+ggsave("thermocycle_all.png", bg = 'white',plot = thermocycle_all, width = 10, height = 6, dpi = 300, units = "in")
 
 
 #Group plots with matricides censored
-thermocycle_all_NM <- ggarrange(LS_plot_matcen_THC$plot + theme(plot.title = element_text(face = "bold")), LS_plot_matcen_THH$plot+ theme(plot.title = element_text(face = "bold")), CF_NM_contrasts, HF_NM_contrasts, nrow = 2, ncol =2, common.legend = T, labels = c('A','B','C','D'))
+thermocycle_all_NM <- ggarrange(LS_plot_matcen_THC$plot + theme(plot.title = element_text(face = "bold")), LS_plot_matcen_THH$plot+ theme(plot.title = element_text(face = "bold")), CF_NM_contrasts+theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 25, unit = "pt")), HF_NM_contrasts+theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 25, unit = "pt")), nrow = 2, ncol =2, common.legend = T, labels = c('A','B','C','D'), heights = c(1.5, 1))
 
 thermocycle_all_NM
 
-ggsave("thermocycle_NM_all.png", plot = thermocycle_all_NM, bg = 'white',width = 12, height = 8, dpi = 300, units = "in")
+ggsave("thermocycle_NM_all.png", plot = thermocycle_all_NM, bg = 'white',width = 10, height = 6, dpi = 300, units = "in")
 ```
 
 
@@ -1059,7 +1059,7 @@ df_SKN$Comparison <- df_SKN$contrast
 #Create forest plot for differences of treatments within strains
 SKN_contrasts <- ggplot(df_SKN, aes(x = Comparison, y = logHR)) +
   geom_point(size = 4, color = '#4DBBD5FF') +
-  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2, color = 'grey50') +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2, color = 'grey50', linewidth = 0.8) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1,color ='#4DBBD5FF')+
   coord_flip() +
   #scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
@@ -1116,7 +1116,7 @@ df_SKN_NM$Comparison <- df_SKN_NM$contrast
 #Create forest plot for differences of treatments within strains
 SKN_NM_contrasts <- ggplot(df_SKN_NM, aes(x = Comparison, y = logHR)) +
   geom_point(size = 4, color = '#4DBBD5FF') +
-  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2, color = 'grey50') +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 1.2, color = 'grey50', linewidth = 0.8) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2, size = 1.1,color ='#4DBBD5FF')+
   coord_flip() +
   #scale_x_discrete(labels = c('N2 \n daf-2 - ev','SKN-1 \n daf-2 - ev'))+
@@ -1137,7 +1137,12 @@ SKN_20C_all <- ggarrange(SKN_NM_LS_plot$plot, skn_20C_p, SKN_NM_contrasts+theme(
 SKN_20C_all
 
 
-ggsave("SKN_20C_all.png", plot = SKN_20C_all, bg = 'white',width = 12, height = 10, dpi = 300, units = "in")
+ggsave("SKN_20C_all.png", plot = SKN_20C_all, bg = 'white',width = 10, height = 8, dpi = 300, units = "in")
+
+#Matricides included for suppmat
+SKN_20C_LS_all <- ggarrange(SKN_20C_LS_plot$plot, SKN_contrasts+theme(plot.margin = margin(t = 5, r = 45, b = 5, l = 45, unit = "pt")), nrow = 2, heights = c(2,1), common.legend = T, labels = c('A','B'))
+SKN_20C_LS_all
+ggsave("SKN_20C_LS_all.png", plot = SKN_20C_LS_all, bg = 'white',width = 6, height = 6, dpi = 300, units = "in")
 ```
 
 # SKN-1 in 25C
@@ -1173,7 +1178,7 @@ SKN_25$Str_tr_temp <- relevel(SKN_25$Str_tr_temp, ref = 'N2_ev_25')
 surv_SKN25<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_25)
 
 #Create survival curve
-SKN_25_plot <-ggsurvplot(surv_SKN25, ylab="Survival probability\n", data = SKN_25, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.8, 0.8), legend.title = "", title = "25°C", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'),censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
+SKN_25_plot <-ggsurvplot(surv_SKN25, ylab="Survival probability\n", data = SKN_25, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.8, 0.8), legend.title = "", title = "25°C", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'),censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12),font.title = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_25_plot
 
@@ -1185,7 +1190,7 @@ SKN_25_NM <- SKN_25 %>%
 surv_SKN25_NM<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_25_NM)
 
 #Create survival curve
-SKN_25_NM_plot <-ggsurvplot(surv_SKN25_NM, ylab="Survival probability\n", data = SKN_25_NM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.8, 0.8), legend.title = "", title = "25°C", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
+SKN_25_NM_plot <-ggsurvplot(surv_SKN25_NM, ylab="Survival probability\n", data = SKN_25_NM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.8, 0.8), legend.title = "", title = "25°C", palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12),font.title = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_25_NM_plot
 
@@ -1350,7 +1355,7 @@ all_25_df$label <- paste(all_25_df$model, all_25_df$contrast, sep = ": ")
 #change contrast names
 all_25_df$contrast <- fct_recode(all_25_df$contrast,
   "SKN-1: daf-2 - ev" = "daf_25 - ev_25",
-  "SKN-1: daf-2 with cycle - ev" = "daf_25F - ev_25",
+  "SKN-1: daf-2 + cycle - ev" = "daf_25F - ev_25",
   "N2: daf-2 - ev" = "daf - ev")
 
 levels(all_25_df$contrast)
@@ -1359,7 +1364,7 @@ levels(all_25_df$contrast)
 all_25_df <- all_25_df %>%
   mutate(label = recode(label,
     "SKN-1: daf_25 - ev_25"  = "SKN-1: daf-2 - ev",
-    "SKN-1: daf_25F - ev_25" = "SKN-1: daf-2 with cycle - ev",
+    "SKN-1: daf_25F - ev_25" = "SKN-1: daf-2 + cycle - ev",
     "N2: daf - ev"           = "N2: daf-2 - ev"
   ))
 
@@ -1367,9 +1372,10 @@ all_25_df <- all_25_df %>%
 SKN_N2_25_HR <- ggplot(all_25_df, aes(x = estimate, y = label, color = contrast)) +
   geom_point(size = 4) +
   geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 0.8) +
   labs(x = "Log Hazard Ratio", y = "") +
   scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  scale_y_discrete(labels = c('N2: \n daf-2 - ev', 'SKN-1: \n daf-2 - ev','SKN-1: \n daf-2 + cycle - ev' ))+
   theme_minimal()+
     theme(legend.position = 'none',
          axis.text= element_text(size = 12),
@@ -1416,7 +1422,7 @@ all_25NM_df$label <- paste(all_25NM_df$model, all_25NM_df$contrast, sep = ": ")
 #change contrast names
 all_25NM_df$contrast <- fct_recode(all_25NM_df$contrast,
   "SKN-1: daf-2 - ev" = "daf_25 - ev_25",
-  "SKN-1: daf-2 with cycle - ev" = "daf_25F - ev_25",
+  "SKN-1: daf-2 + cycle - ev" = "daf_25F - ev_25",
   "N2: daf-2 - ev" = "daf - ev")
 
 levels(all_25NM_df$contrast)
@@ -1425,7 +1431,7 @@ levels(all_25NM_df$contrast)
 all_25NM_df <- all_25NM_df %>%
   mutate(label = recode(label,
     "SKN-1: daf_25 - ev_25"  = "SKN-1: daf-2 - ev",
-    "SKN-1: daf_25F - ev_25" = "SKN-1: daf-2 with cycle - ev",
+    "SKN-1: daf_25F - ev_25" = "SKN-1: daf-2 + cycle - ev",
     "N2: daf - ev"           = "N2: daf-2 - ev"
   ))
 
@@ -1433,9 +1439,10 @@ all_25NM_df <- all_25NM_df %>%
 SKN_N2_25NM_HR <- ggplot(all_25NM_df, aes(x = estimate, y = label, color = contrast)) +
   geom_point(size = 4) +
   geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 0.8) +
   labs(x = "Log Hazard Ratio", y = "") +
   scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  scale_y_discrete(labels = c('N2: \n daf-2 - ev', 'SKN-1: \n daf-2 - ev','SKN-1: \n daf-2 + cycle - ev' ))+
   theme_minimal()+
     theme(legend.position = 'none',
          axis.text= element_text(size = 12),
@@ -1476,7 +1483,7 @@ SKN_15$Str_tr_temp <- factor(SKN_15$Str_tr_temp, levels = c('N2_ev_15','N2_daf_1
 surv_SKN15<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_15)
 
 #Create survival curves
-SKN_15_plot <-ggsurvplot(surv_SKN15, ylab="Survival probability\n", data = SKN_15, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.2, 0.2), legend.title = "", title = "15°C",palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12), legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
+SKN_15_plot <-ggsurvplot(surv_SKN15, ylab="Survival probability\n", data = SKN_15, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.2, 0.2), legend.title = "", title = "15°C",palette = c('#4DBBD5FF','#E64B35FF' ,'#3C5488FF','#F39B7FFF','#00A087FF'), censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), font.legend = c(12), font.title = c(12), legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_15_plot
 
@@ -1488,7 +1495,7 @@ SKN_15_NM <- SKN_15 %>%
 surv_SKN15_NM<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_15_NM)
 
 #Create survival curves
-SKN_15_NM_plot <-ggsurvplot(surv_SKN15_NM, ylab="Survival probability\n", data = SKN_15_NM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.2, 0.2), legend.title = "", title = "15°C", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), palette = c('#4DBBD5FF','#E64B35FF', '#3C5488FF','#F39B7FFF','#00A087FF'), font.legend = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
+SKN_15_NM_plot <-ggsurvplot(surv_SKN15_NM, ylab="Survival probability\n", data = SKN_15_NM, size= 0.8, font.ylab= 14, font.xlab= 14, legend = c(0.2, 0.2), legend.title = "", title = "15°C", censor = FALSE, xlab = "\nDay", xlim=c(0,40), break.time.by = 5, position= position_dodge(0.9), font.tickslab = c(12), palette = c('#4DBBD5FF','#E64B35FF', '#3C5488FF','#F39B7FFF','#00A087FF'), font.legend = c(12),font.title = c(12),legend.labs = c('N2 daf-2', 'N2 ev','SKN-1 daf-2','SKN-1 daf-2 + cycle','SKN-1 ev'))
 
 SKN_15_NM_plot
 
@@ -1605,7 +1612,7 @@ all_15_df$label <- paste(all_15_df$model, all_15_df$contrast, sep = ": ")
 #change contrast names
 all_15_df$contrast <- fct_recode(all_15_df$contrast,
   "SKN-1: daf-2 - ev" = "daf_15 - ev_15",
-  "SKN-1: daf-2 with cycle - ev" = "daf_15F - ev_15",
+  "SKN-1: daf-2 + cycle - ev" = "daf_15F - ev_15",
   "N2: daf-2 - ev" = "daf - ev")
 
 levels(all_15_df$contrast)
@@ -1614,7 +1621,7 @@ levels(all_15_df$contrast)
 all_15_df <- all_15_df %>%
   mutate(label = recode(label,
     "SKN-1: daf_15 - ev_15"  = "SKN-1: daf-2 - ev",
-    "SKN-1: daf_15F - ev_15" = "SKN-1: daf-2 with cycle - ev",
+    "SKN-1: daf_15F - ev_15" = "SKN-1: daf-2 + cycle - ev",
     "N2: daf - ev"           = "N2: daf-2 - ev"
   ))
 
@@ -1622,9 +1629,10 @@ all_15_df <- all_15_df %>%
 SKN_N2_15_HR <- ggplot(all_15_df, aes(x = estimate, y = label, color = contrast)) +
   geom_point(size = 4) +
   geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 0.8) +
   labs(x = "Log Hazard Ratio", y = "") +
   scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  scale_y_discrete(labels = c('N2: \n daf-2 - ev', 'SKN-1: \n daf-2 - ev','SKN-1: \n daf-2 + cycle - ev' ))+
   theme_minimal()+
     theme(legend.position = 'none',
          axis.text= element_text(size = 12),
@@ -1671,7 +1679,7 @@ all_15NM_df$label <- paste(all_15NM_df$model, all_15NM_df$contrast, sep = ": ")
 #change contrast names
 all_15NM_df$contrast <- fct_recode(all_15NM_df$contrast,
   "SKN-1: daf-2 - ev" = "daf_15 - ev_15",
-  "SKN-1: daf-2 with cycle - ev" = "daf_15F - ev_15",
+  "SKN-1: daf-2 + cycle - ev" = "daf_15F - ev_15",
   "N2: daf-2 - ev" = "daf - ev")
 
 levels(all_15NM_df$contrast)
@@ -1680,7 +1688,7 @@ levels(all_15NM_df$contrast)
 all_15NM_df <- all_15NM_df %>%
   mutate(label = recode(label,
     "SKN-1: daf_15 - ev_15"  = "SKN-1: daf-2 - ev",
-    "SKN-1: daf_15F - ev_15" = "SKN-1: daf-2 with cycle - ev",
+    "SKN-1: daf_15F - ev_15" = "SKN-1: daf-2 + cycle - ev",
     "N2: daf - ev"           = "N2: daf-2 - ev"
   ))
 
@@ -1688,9 +1696,10 @@ all_15NM_df <- all_15NM_df %>%
 SKN_N2_15NM_HR <- ggplot(all_15NM_df, aes(x = estimate, y = label, color = contrast)) +
   geom_point(size = 4) +
   geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.2, linewidth = 1.1) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 1.1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50", size = 0.8) +
   labs(x = "Log Hazard Ratio", y = "") +
   scale_color_manual(values = c('#4DBBD5FF', '#3C5488FF','#F39B7FFF'))+
+  scale_y_discrete(labels = c('N2: \n daf-2 - ev', 'SKN-1: \n daf-2 - ev','SKN-1: \n daf-2 + cycle - ev' ))+
   theme_minimal()+
     theme(legend.position = 'none',
          axis.text= element_text(size = 12),
@@ -1700,16 +1709,16 @@ SKN_N2_15NM_HR <- ggplot(all_15NM_df, aes(x = estimate, y = label, color = contr
 SKN_N2_15NM_HR
 
 
-SKN_15_25_all <- ggarrange(SKN_15_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_25_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_N2_15_HR,  SKN_N2_25_HR, nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'))
+SKN_15_25_all <- ggarrange(SKN_15_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_25_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_N2_15_HR,  SKN_N2_25_HR, nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'), heights = c(1.5, 1))
 SKN_15_25_all
 
-ggsave("SKN_15_25_all.png", plot = SKN_15_25_all, bg = 'white',width = 12, height = 8, dpi = 300, units = "in")
+ggsave("SKN_15_25_all.png", plot = SKN_15_25_all, bg = 'white',width = 10, height = 6, dpi = 300, units = "in")
 
-SKN_15_25_NM_all <- ggarrange(SKN_15_NM_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_25_NM_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_N2_15NM_HR,  SKN_N2_25NM_HR+theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 5, unit = "pt")), nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'))
+SKN_15_25_NM_all <- ggarrange(SKN_15_NM_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_25_NM_plot$plot+ theme(plot.title = element_text(face = "bold")), SKN_N2_15NM_HR,  SKN_N2_25NM_HR+theme(plot.margin = margin(t = 5, r = 25, b = 5, l = 5, unit = "pt")), nrow = 2, ncol = 2, common.legend = T, labels = c('A','B','C','D'), heights = c(1.5,1))
 SKN_15_25_NM_all
 
 
-ggsave("SKN_15_25_NM_all.png", plot = SKN_15_25_NM_all, bg = 'white',width = 12, height = 8, dpi = 300, units = "in")
+ggsave("SKN_15_25_NM_all.png", plot = SKN_15_25_NM_all, bg = 'white',width = 10, height = 6, dpi = 300, units = "in")
 
 
 ```
