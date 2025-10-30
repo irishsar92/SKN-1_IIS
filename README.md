@@ -1,7 +1,7 @@
 Lifespan extension by daf-2 mediated IIS knockdown is dependent on interaction between transcription factor skn-1, temperature, and age
-Sara D. Irish1, Annabel Kimberley1, Simone Immler1, Alexei A. Maklakov1
-1School of Biological Sciences, University of East Anglia, Norwich Research Park, Norwich NR4 7TJ, UK
-Corresponding author: S.irish@uea.ac.uk
+		Sara D. Irish1, Annabel Kimberley1, Simone Immler1, Alexei A. Maklakov1
+		1School of Biological Sciences, University of East Anglia, Norwich Research Park, Norwich NR4 7TJ, UK
+		Corresponding author: S.irish@uea.ac.uk
 --------------------------------------------------------------------------------------------------------------------------------------
 Abstract:
 The highly evolutionarily conserved insulin signalling pathway (IIS) plays a critical role in the shaping of life-history traits through the regulation of downstream transcription factors, most notably daf-16, but also hsf-1 and skn-1. Reduced IIS (rIIS) has been shown to dramatically increase the lifespan of Caenorhabditis elegans nematodes. However, this work is typically performed in tightly controlled environments. Here, we used rIIS during development in skn-1 loss of function mutants under different constant and fluctuating temperature regimes. Our results indicate there is a critical period during development in which IIS, skn-1, and temperature interact to shape ageing trajectories.
