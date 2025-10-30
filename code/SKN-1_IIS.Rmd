@@ -55,17 +55,17 @@ suppressPackageStartupMessages({
 })
 
 #24-hour 15 to 25C thermocycling experiments, HF = 25C first, CF = 15C first, LS = lifespan, rep = reproduction
-thermo_HF_rep <- read.csv('Thermo_H_rep.csv')
-thermo_HF_LS <- read.csv('Thermo_H_LS.csv')
-thermo_CF_rep <- read.csv('Thermo_C_rep.csv')
-thermo_CF_LS <- read.csv('Thermo_C_LS.csv') 
+thermo_HF_rep <- read.csv('data/Thermo_H_rep.csv')
+thermo_HF_LS <- read.csv('data/Thermo_H_LS.csv')
+thermo_CF_rep <- read.csv('data/Thermo_C_rep.csv')
+thermo_CF_LS <- read.csv('data/Thermo_C_LS.csv') 
 
 #SKN-1 mutants with and without daf-2 RNAi KD in 20C - LS = lifespan, rep = reproduction
-SKN_20C_rep <- read.csv('SKN1_20C_repro.csv')
-SKN_20C_LS <- read.csv('SKN1_20C_LS.csv')
+SKN_20C_rep <- read.csv('data/SKN1_20C_repro.csv')
+SKN_20C_LS <- read.csv('data/SKN1_20C_LS.csv')
 
 #Lifespan experiment SKN-1 mutants with and without daf-2 RNAi KD in 15 and 25C, with additional treatment of daf-2 RNAi KD SKN-1 mutants starting with 24 hrs of opposite temperature to test effects of temperature on early development of SKN-1 mutants
-SKN_15_25_LS <- read.csv('SKN_N2_LS_15_25.csv')
+SKN_15_25_LS <- read.csv('data/SKN_N2_LS_15_25.csv')
 
 #Create colour palette
 palette <- c('#E64B35FF','#4DBBD5FF', '#00A087FF', '#3C5488FF')
