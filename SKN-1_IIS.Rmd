@@ -86,6 +86,7 @@ thermo_c_long <- thermo_CF_rep %>%
     names_to = "Day",
     values_to = "value")
 
+
 #Remove unneeded columns
 thermo_c_long <- thermo_c_long %>%
   dplyr::select(c('ID','Strain', 'Treatment','Day','value'))
@@ -216,6 +217,8 @@ Anova(LRS_CF2, type = 'II')
 thermo_CF_LS <- thermo_CF_LS %>%
   unite(Str_tr, c('Strain', 'Treatment.ID'), remove = F)
 
+
+
 #Set levels
 thermo_CF_LS$Tr_str <- factor(thermo_CF_LS$Str_tr, levels = c("N2_ev", "N2_daf", "SKN-1_ev", "SKN-1_daf"))
 
@@ -229,6 +232,7 @@ thermo_CF_LS$Str_tr <- relevel(thermo_CF_LS$Str_tr, ref = 'N2_ev')
 thermo_CF_LS <- thermo_CF_LS %>%
   filter(thermo_CF_LS$Cause != 'L' & thermo_CF_LS$Cause !='W' & thermo_CF_LS$Cause != 'E')
 
+
 #Create survival object for plotting Kaplan Meier curves
 surv_CF<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LS)
 
@@ -240,6 +244,7 @@ THC_LS_plot
 #Create dataframe excluding matricides
 thermo_CF_LSNM <- thermo_CF_LS %>%
   filter(thermo_CF_LS$Cause != 'M')
+
 
 #Create survival object
 survCF_NM<-survfit(Surv(Age,Event)~Str_tr,data=thermo_CF_LSNM)
@@ -600,6 +605,7 @@ survHF<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LS)
 #Create a binary variable for matricides (1 = matricide, 0 = no matricide) to analyse with logistic regression
 thermo_HF_LS$Matricide <- as.numeric(thermo_HF_LS$Cause == 'M')
 
+
 #binomial glmer for matricide occurrence (logistic regression)
 mat_mod <- glmer(Matricide ~ Str_tr + (1|Plate.ID), data = thermo_HF_LS, family = 'binomial')
 summary(mat_mod)
@@ -614,6 +620,7 @@ THH_LS_plot
 #Exclude matricides
 thermo_HF_LSNM <- thermo_HF_LS %>%
   filter(thermo_HF_LS$Cause != 'M')
+
 
 #Create survival object for matricide censored data
 survHF_NM<-survfit(Surv(Age,Event)~Str_tr,data=thermo_HF_LSNM)
@@ -838,6 +845,9 @@ skn_long <- SKN_20C_rep %>%
     cols = c(`D1`, `D2`, `D3`, `D4`, `D5`), 
     names_to = "Day",
     values_to = "value")
+
+summarySE(thermo_HF_LS, groupvars = c('Strain','Treatment.ID'), measurevar = 'Age')
+
 
 #select only columns needed
 skn_long <- skn_long %>%
@@ -1078,6 +1088,7 @@ SKN_contrasts
 #Exclude matricides
 SKN_20C_LS_NM <- SKN_20C_LS %>%
   filter(Cause != 'M')
+
 
 #Create survival object
 surv_SKN_NM<-survfit(Surv(Age,Event)~Treatment.ID,data=SKN_20C_LS_NM)
@@ -1490,6 +1501,7 @@ SKN_15_plot
 #Exclude matricides
 SKN_15_NM <- SKN_15 %>%
   filter(Cause != 'M')
+
 
 #Create survival objet
 surv_SKN15_NM<-survfit(Surv(Age,Event)~Str_tr + Temperature,data=SKN_15_NM)
