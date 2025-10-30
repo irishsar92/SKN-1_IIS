@@ -1,4 +1,4 @@
-Lifespan extension by daf-2 mediated IIS knockdown is dependent on interaction between transcription factor skn-1, temperature, and age
+Lifespan extension by daf-2 mediated IIS knockdown is dependent on interaction between transcription factor skn-1, temperature, and age  
 		Sara D. Irish1, Annabel Kimberley1, Simone Immler1, Alexei A. Maklakov1
 		1School of Biological Sciences, University of East Anglia, Norwich Research Park, Norwich NR4 7TJ, UK
 		Corresponding author: S.irish@uea.ac.uk
